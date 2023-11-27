@@ -4,27 +4,27 @@
 
 When you want to implement a new feature/program/thing:
 
-Make sure you are on the main branch before branching off:  
+1. Make sure you are on the main branch before branching off:  
 `$ git checkout main`  
 
-Get latest version from upstream:  
+2. Get latest version from upstream:  
 `$ git pull`  
 
-Create a new branch called `<feature>`:  
+3. Create a new branch called `<feature>`:  
 `$ git branch <feature>`
 
-Switch to your new branch:  
+4. Switch to your new branch:  
 `$ git checkout <feature>`
 
-Let remote know about it's existance:  
+5. Let remote know about it's existance:  
 `$ git push --set-upstream origin test`
 
-Do your development work and commit along the way:  
+6. Do your development work and commit along the way:  
 `$ git add <file(s)>`  
 `$ git commit`  
 `$ git push`  
 
-When the feature is finished, merge it into main branch:  
+7. When the feature is finished, merge it into main branch:  
 `$ git checkout main`  
 `$ git merge <feature>`  
 `$ git push`  
