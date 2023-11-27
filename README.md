@@ -23,8 +23,8 @@ be enough to get going for now:
 
 ### Activate the venv:
 
-POSIX-ish: `$ source .venv/bin/activate`
-Windows: `C:\> .venv/bin/Activate.bat`
+* POSIX-ish: `$ source .venv/bin/activate`
+* Windows: `C:\> .venv/bin/Activate.bat`
 
 Your prompt should change to be prefixed with (.venv) if successful
 
