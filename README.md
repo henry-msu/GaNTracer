@@ -1,6 +1,18 @@
 # GaNTracer - Git repository for 2023 capstone
 
-## Python venv
+## CCS workspace
+Not entirely sure if this will work, but theoretically we can just use the one
+ccs workspace for everyone
+
+### Setup ccs workspace
+1. Clone this repo: `$ git clone git@github.com:henry-msu/GaNTracer`
+2. Open CCS
+3. If it prompts you to select a workspace, navigate to wherever this repo is
+   cloned and choose `GaNTracer/ccs workspace`
+4. If it doesn't prompt, click `File` > `Switch Workspace` > `Other` and follow
+   step 3
+
+## Python venvs
 Python provides a nice way of using modules without needing to install them
 system wide, called venv's. I'm not well versed in the subject, but this should
 be enough to get going for now:
