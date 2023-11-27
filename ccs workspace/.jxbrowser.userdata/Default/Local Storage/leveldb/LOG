@@ -1,6 +1,0 @@
-2023/11/26-18:09:54.452 7e4e Reusing MANIFEST /home/henry/git/GaNTracer/ccs workspace/.jxbrowser.userdata/Default/Local Storage/leveldb/MANIFEST-000001
-2023/11/26-18:09:54.452 7e4e Recovering log #3
-2023/11/26-18:09:54.453 7e4e Reusing old log /home/henry/git/GaNTracer/ccs workspace/.jxbrowser.userdata/Default/Local Storage/leveldb/000003.log 
-2023/11/26-18:11:28.624 7fc3 Level-0 table #5: started
-2023/11/26-18:11:28.635 7fc3 Level-0 table #5: 28556 bytes OK
-2023/11/26-18:11:28.640 7fc3 Delete type=0 #3
