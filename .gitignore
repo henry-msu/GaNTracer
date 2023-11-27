@@ -1,0 +1,2 @@
+# python venvs are not supposed to be in vcs
+.venv
