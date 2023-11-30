@@ -1,1 +1,3 @@
 pyftdi
+termcolor
+pyside6==6.6
