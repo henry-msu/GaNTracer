@@ -33,7 +33,7 @@ signal.signal(signal.SIGINT, print_results) # catch SIGINT
 
 spi = SpiController() # instantiate spi device
 spi.configure('ftdi://ftdi:232h/1') # use first ft232h enumerated (THIS WILL CHANGE SOON)
-slave = spi.get_port(cs=0, freq=1.5E6, mode=0) # Set up SPI master
+slave = spi.get_port(cs=0, freq=1.75E6, mode=0) # Set up SPI master
 
 successfulexchanges = 0; # how many exchanges were successful
 total_time = 0; # time for each exchange
