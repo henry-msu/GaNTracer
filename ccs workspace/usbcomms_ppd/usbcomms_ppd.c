@@ -15,7 +15,7 @@
  *                         |----------------|
  *
  * This example uses the following peripherals and I/O signals:
- * - CS module (to set MCLK frequency to 8 MHz
+ * - CS module (to set MCLK frequency to 24 MHz
  * - EUSCI_B0 module (SPI mode)
  * - GPIO Port module (for SPI pins)
  *   - UCB0STE
