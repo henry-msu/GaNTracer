@@ -93,25 +93,30 @@ void spiWrite(char data) {
 //--------------------------------------------------------------
 unsigned char spiRead() {
     UCA0IFG |= UCRXIFG;
+    //spiReceivedData = UCA0RXBUF; // Read RX Buff
     // Read and return the received data
     return spiReceivedData;
 }
 
-unsigned char readADC() {
+unsigned int readADC() {
     for (i = 0; i < 100; i++){}
 
-    unsigned char data;
+    unsigned char byte1,byte2; // assume MSBs, Then LSBs
     //char packet[2] = {0b01011011,address};
     // Send read command along with the address
     spiWrite(0b01000001); // 0x41 (write to read from 0x00 adc reg)
+    while ((UCA0IFG & UCTXIFG) == 0);
     spiWrite(0xFF); // dummy write so we can read
     // Read the data from the ADC
-    data = spiRead();     // read from 0x00 but the we can only read 2bytes
-    while ((UCA0IFG & UCTXIFG) == 0);
-    spiWrite(0xFE); // dummy write so we can read
+    byte1 = spiRead();     // read from 0x00 but the we can only read 2bytes
+    //while ((UCA0IFG & UCRXIFG) == 0);
+//    for (i = 0; i < 100; i++){}
+    spiWrite(0xFF); // dummy write so we can read
     // Read the data from the ADC
-    data = spiRead();     // read from 0x00 trying to get 2nd 2bytes
-
+    byte2 = spiRead();     // read from 0x00 trying to get 2nd 2bytes
+    int data = byte1;
+    data = data << 8;
+    data = data | byte2;
     return data;
 }
 
@@ -212,25 +217,24 @@ int main(void) {
     unsigned char channel2Address = 0x23; // Address for Channel 2-3
     // Main loop
 
-
+    while(1) {
         // Read data from Channel 0-1
-        for (i = 0; i < 100; i++){}
+        for (i = 0; i < 10; i++){}
         changechannel(channel1Address);
         for (i = 0; i < 10; i++){}
-        unsigned char dataChannel1 = readADC();
-        for (i = 0; i < 10; i++){}
+        unsigned int dataChannel1 = readADC();
+        for (i = 0; i < 100; i++){}
         // Read data from Channel 2-3
-//        changechannel(channel2Address);
-//        for (i = 0; i < 10; i++){}
-//
-//        unsigned char dataChannel2 = readADC();
+        changechannel(channel2Address);
+        for (i = 0; i < 10; i++){}
+        unsigned int dataChannel2 = readADC();
 
         // Process the read data
         // ...
         // Add a delay or some condition to control the frequency of ADC reads
         // ...
         //spiRead();
-    while(1) {
+
         //UCA1TXBUF = 'T';
         for (i = 0; i < 10000; i++){}
     }
