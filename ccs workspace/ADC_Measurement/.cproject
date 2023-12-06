@@ -43,7 +43,7 @@
 								<option id="com.ti.ccstudio.buildDefinitions.MSP430_20.2.compilerID.SILICON_ERRATA.CPU22.1346696190" name="Workaround specified silicon errata (--silicon_errata) [CPU22]" superClass="com.ti.ccstudio.buildDefinitions.MSP430_20.2.compilerID.SILICON_ERRATA.CPU22" useByScannerDiscovery="false" value="true" valueType="boolean"/>
 								<option id="com.ti.ccstudio.buildDefinitions.MSP430_20.2.compilerID.SILICON_ERRATA.CPU40.1930070559" name="Workaround specified silicon errata (--silicon_errata) [CPU40]" superClass="com.ti.ccstudio.buildDefinitions.MSP430_20.2.compilerID.SILICON_ERRATA.CPU40" useByScannerDiscovery="false" value="true" valueType="boolean"/>
 								<option id="com.ti.ccstudio.buildDefinitions.MSP430_20.2.compilerID.SILICON_VERSION.543928284" name="Silicon version (--silicon_version, -v)" superClass="com.ti.ccstudio.buildDefinitions.MSP430_20.2.compilerID.SILICON_VERSION" useByScannerDiscovery="false" value="com.ti.ccstudio.buildDefinitions.MSP430_20.2.compilerID.SILICON_VERSION.mspx" valueType="enumerated"/>
-								<option id="com.ti.ccstudio.buildDefinitions.MSP430_20.2.compilerID.PRINTF_SUPPORT.733350728" name="Level of printf/scanf support required (--printf_support)" superClass="com.ti.ccstudio.buildDefinitions.MSP430_20.2.compilerID.PRINTF_SUPPORT" useByScannerDiscovery="false" value="com.ti.ccstudio.buildDefinitions.MSP430_20.2.compilerID.PRINTF_SUPPORT.minimal" valueType="enumerated"/>
+								<option id="com.ti.ccstudio.buildDefinitions.MSP430_20.2.compilerID.PRINTF_SUPPORT.733350728" name="Level of printf/scanf support required (--printf_support)" superClass="com.ti.ccstudio.buildDefinitions.MSP430_20.2.compilerID.PRINTF_SUPPORT" useByScannerDiscovery="false" value="com.ti.ccstudio.buildDefinitions.MSP430_20.2.compilerID.PRINTF_SUPPORT.full" valueType="enumerated"/>
 								<option id="com.ti.ccstudio.buildDefinitions.MSP430_20.2.compilerID.DEBUGGING_MODEL.1683456968" name="Debugging model" superClass="com.ti.ccstudio.buildDefinitions.MSP430_20.2.compilerID.DEBUGGING_MODEL" useByScannerDiscovery="false" value="com.ti.ccstudio.buildDefinitions.MSP430_20.2.compilerID.DEBUGGING_MODEL.SYMDEBUG__DWARF" valueType="enumerated"/>
 								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="com.ti.ccstudio.buildDefinitions.MSP430_20.2.compilerID.DIAG_WARNING.651852079" name="Treat diagnostic &lt;id&gt; as warning (--diag_warning, -pdsw)" superClass="com.ti.ccstudio.buildDefinitions.MSP430_20.2.compilerID.DIAG_WARNING" useByScannerDiscovery="false" valueType="stringList">
 									<listOptionValue builtIn="false" value="225"/>
@@ -57,7 +57,10 @@
 								</option>
 								<option id="com.ti.ccstudio.buildDefinitions.MSP430_20.2.compilerID.ADVICE__POWER.192965824" name="Enable checking of ULP power rules (--advice:power)" superClass="com.ti.ccstudio.buildDefinitions.MSP430_20.2.compilerID.ADVICE__POWER" useByScannerDiscovery="false" value="&quot;all&quot;" valueType="string"/>
 								<option id="com.ti.ccstudio.buildDefinitions.MSP430_20.2.compilerID.OPT_LEVEL.988850241" name="Optimization level (--opt_level, -O)" superClass="com.ti.ccstudio.buildDefinitions.MSP430_20.2.compilerID.OPT_LEVEL" value="com.ti.ccstudio.buildDefinitions.MSP430_20.2.compilerID.OPT_LEVEL.off" valueType="enumerated"/>
-								<option id="com.ti.ccstudio.buildDefinitions.MSP430_20.2.compilerID.OPT_FOR_SPEED.801778811" superClass="com.ti.ccstudio.buildDefinitions.MSP430_20.2.compilerID.OPT_FOR_SPEED" value="com.ti.ccstudio.buildDefinitions.MSP430_20.2.compilerID.OPT_FOR_SPEED.0" valueType="enumerated"/>
+								<option id="com.ti.ccstudio.buildDefinitions.MSP430_20.2.compilerID.OPT_FOR_SPEED.801778811" name="Speed vs. size trade-offs (--opt_for_speed, -mf)" superClass="com.ti.ccstudio.buildDefinitions.MSP430_20.2.compilerID.OPT_FOR_SPEED" value="com.ti.ccstudio.buildDefinitions.MSP430_20.2.compilerID.OPT_FOR_SPEED.0" valueType="enumerated"/>
+								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="com.ti.ccstudio.buildDefinitions.MSP430_20.2.compilerID.OTHER_FLAGS.1860106793" name="Other flags" superClass="com.ti.ccstudio.buildDefinitions.MSP430_20.2.compilerID.OTHER_FLAGS" valueType="stringList">
+									<listOptionValue builtIn="false" value=""/>
+								</option>
 								<inputType id="com.ti.ccstudio.buildDefinitions.MSP430_20.2.compiler.inputType__C_SRCS.1608303817" name="C Sources" superClass="com.ti.ccstudio.buildDefinitions.MSP430_20.2.compiler.inputType__C_SRCS"/>
 								<inputType id="com.ti.ccstudio.buildDefinitions.MSP430_20.2.compiler.inputType__CPP_SRCS.414981090" name="C++ Sources" superClass="com.ti.ccstudio.buildDefinitions.MSP430_20.2.compiler.inputType__CPP_SRCS"/>
 								<inputType id="com.ti.ccstudio.buildDefinitions.MSP430_20.2.compiler.inputType__ASM_SRCS.1825217257" name="Assembly Sources" superClass="com.ti.ccstudio.buildDefinitions.MSP430_20.2.compiler.inputType__ASM_SRCS"/>
@@ -98,6 +101,15 @@
 							</tool>
 						</toolChain>
 					</folderInfo>
+					<fileInfo id="com.ti.ccstudio.buildDefinitions.MSP430.Debug.1173441606.1709516371" name="main.c" rcbsApplicability="disable" resourcePath="main.c" toolsToInvoke="com.ti.ccstudio.buildDefinitions.MSP430_20.2.exe.compilerDebug.419992839.413667058">
+						<tool id="com.ti.ccstudio.buildDefinitions.MSP430_20.2.exe.compilerDebug.419992839.413667058" name="MSP430 Compiler" superClass="com.ti.ccstudio.buildDefinitions.MSP430_20.2.exe.compilerDebug.419992839">
+							<option id="com.ti.ccstudio.buildDefinitions.MSP430_20.2.compilerID.OPT_FOR_SPEED.1478008620" superClass="com.ti.ccstudio.buildDefinitions.MSP430_20.2.compilerID.OPT_FOR_SPEED" value="com.ti.ccstudio.buildDefinitions.MSP430_20.2.compilerID.OPT_FOR_SPEED.0" valueType="enumerated"/>
+							<inputType id="com.ti.ccstudio.buildDefinitions.MSP430_20.2.compiler.inputType__C_SRCS.307221762" name="C Sources" superClass="com.ti.ccstudio.buildDefinitions.MSP430_20.2.compiler.inputType__C_SRCS"/>
+							<inputType id="com.ti.ccstudio.buildDefinitions.MSP430_20.2.compiler.inputType__CPP_SRCS.258364507" name="C++ Sources" superClass="com.ti.ccstudio.buildDefinitions.MSP430_20.2.compiler.inputType__CPP_SRCS"/>
+							<inputType id="com.ti.ccstudio.buildDefinitions.MSP430_20.2.compiler.inputType__ASM_SRCS.1129812637" name="Assembly Sources" superClass="com.ti.ccstudio.buildDefinitions.MSP430_20.2.compiler.inputType__ASM_SRCS"/>
+							<inputType id="com.ti.ccstudio.buildDefinitions.MSP430_20.2.compiler.inputType__ASM2_SRCS.71975241" name="Assembly Sources" superClass="com.ti.ccstudio.buildDefinitions.MSP430_20.2.compiler.inputType__ASM2_SRCS"/>
+						</tool>
+					</fileInfo>
 				</configuration>
 			</storageModule>
 			<storageModule moduleId="org.eclipse.cdt.core.externalSettings"/>

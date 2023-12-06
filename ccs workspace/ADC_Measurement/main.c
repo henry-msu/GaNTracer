@@ -1,6 +1,7 @@
 #include <msp430.h>
 #include <string.h>
 #include <math.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -11,21 +12,28 @@
 #define SPI_CLK  BIT5  // P1.5 as Serial Clock (SCLK)
 unsigned char spiReceivedData; // Define globally if used outside ISR
 //static unsigned char spiDataReceivedFlag; // Define globally if used outside ISR
-unsigned char TxData;  // Stores data to be transmitted
 char Settings[] = {
         0b01000110, // CMD 0x46
-        0b01101111, // Config0 0x6F
-        0b00000000, // Config1 0x00
+        0b01101111, // Config0 0x6F (0x01)
+        0b11000000, // Config1 0xC0
         0b10001011, // Config2 0x8B
         0b11000000, // Config3 0xC0
-        0b01111011, // IRQ 0x7B
-        0b00000001};  // MUX 0x01 - channel 0 and 1 (reg address 0x6)
-unsigned int position = 0;
-char ChanMux[2] = {0b01011011,0b00000000}; // 0x5B       // holds the 2 address we need to write to
+        0b01110101, // IRQ 0x7B
+        0b00100011,  // MUX 0x01 - channel 0 and 1 (reg address 0x6)
+        0b00100000, // SCAN reg
+        0b00100011, // address
+        0b00101000};// end scan reg
+
+
+
+unsigned int position = 20;
+char ChanMux[2] = {0b01011010,0b00000000}; // 0x5B       // holds the 2 address we need to write to
 unsigned int Muxed = 1; // Keeps track if channel mux was changed 1(false)
 unsigned int i;
+char channel1Address = 0x01; // Address for Channel 0-1
+char channel2Address = 0x23; // Address for Channel 2-3
 // UART Global Variables
-#define max_UART_Length 128
+#define max_UART_Length 64
 char UART_Message_Global[max_UART_Length];
 char *UART_Message_ptr = UART_Message_Global;
 unsigned int UART_Position_Counter;
@@ -55,6 +63,8 @@ void initSPI() {
     // Set up SPI pins
     //P1DIR |= SPI_CS;       // Set CS as output
     //P1OUT |= SPI_CS;       // Set CS high
+    P1DIR |= BIT2;           // Set IRQ as output
+    P1OUT &= BIT2;           // Set IRQ high
     P1SEL1 &= ~SPI_CS;
     P1SEL1 &= ~SPI_SIMO;
     P1SEL1 &= ~SPI_SOMI;
@@ -79,8 +89,16 @@ void initSPI() {
 //void deselectADC() {
 //    P1OUT |= SPI_CS;   // Set CS high to deselect the ADC
 //}
+void selectIQR() {
+    P1OUT |= BIT2;  // Set CS low to select the ADC
+}
+
+void deselectIQR() {
+    P1OUT &= ~BIT2;   // Set CS high to deselect the ADC
+}
+
 //--------------------------------------------------------------
-//-------SPI Write----------------------------------------------
+//-------SPI Write--------z--------------------------------------
 //--------------------------------------------------------------
 void spiWrite(char data) {
     UCA0TXBUF = data;
@@ -92,43 +110,68 @@ void spiWrite(char data) {
 //-------SPI Read----------------------------------------------
 //--------------------------------------------------------------
 unsigned char spiRead() {
-    UCA0IFG |= UCRXIFG;
-    //spiReceivedData = UCA0RXBUF; // Read RX Buff
+    //UCA0IFG |= UCRXIFG;
+    spiReceivedData = UCA0RXBUF; // Read RX Buff
     // Read and return the received data
     return spiReceivedData;
 }
 
 unsigned int readADC() {
     for (i = 0; i < 100; i++){}
-
-    unsigned char byte1,byte2; // assume MSBs, Then LSBs
+    //selectIQR();
+    unsigned int byte1,byte2; // assume MSBs, Then LSBs
     //char packet[2] = {0b01011011,address};
     // Send read command along with the address
+    //spiWrite(0b01000111); // read config regs
     spiWrite(0b01000001); // 0x41 (write to read from 0x00 adc reg)
-    while ((UCA0IFG & UCTXIFG) == 0);
+    while (!(UCA0IFG & UCTXIFG));
     spiWrite(0xFF); // dummy write so we can read
     // Read the data from the ADC
+    spiRead();     // read from 0x00 but the we can only read 2bytes
+    while (!(UCA0IFG & UCRXIFG));
+    //    for (i = 0; i < 100; i++){}
+    spiWrite(0xFF); // dummy write so we can read
+    //while ((UCA0IFG & UCTXIFG) == 0);
+    // Read the data from the ADC
+    spiRead();
     byte1 = spiRead();     // read from 0x00 but the we can only read 2bytes
-    //while ((UCA0IFG & UCRXIFG) == 0);
-//    for (i = 0; i < 100; i++){}
-    spiWrite(0xFF); // dummy write so we can read
-    // Read the data from the ADC
     byte2 = spiRead();     // read from 0x00 trying to get 2nd 2bytes
-    int data = byte1;
-    data = data << 8;
-    data = data | byte2;
+
+    //    int data = byte1;
+//    data = data << 8;
+//    data = data | byte2;
+//--- reads 4 more values
+//    for(i = 0; i < 35; i++){
+//        while (!(UCRXIFG));
+//        spiWrite(0xFF);
+//    }
+
+    //while (UCA0IFG & UCTXIFG);
+    int data = (byte1 << 8)| byte2;
+   // deselectIQR();
     return data;
 }
-
+void unlock(){      // should
+    //selectIQR();
+    spiWrite(0x76);  // 0x76 0b01110110 write to 0xD
+    spiWrite(0xA5); // 0xA5 the "password"
+//    while (!(UCA0IFG & UCTXIFG));
+//    while (!(UCA0IFG & UCRXIFG))
+    for (i = 0; i < 100; i++){}
+    //de//selectIQR();
+    return;
+}
 
 void changechannel(char address) {
+    //selectIQR();
     for (i = 0; i < 100; i++){}
     ChanMux[1] = address;
     // Send read command along with the address
     Muxed = 0;
     // Read the data from the ADC
     UCA0TXBUF = ChanMux[0];
-
+    //while(Muxed < 1) {};
+//    //de//selectIQR();
     return;
 }
 //--------------------------------------------------------------
@@ -154,11 +197,11 @@ void configureADC() {
 //    char MUX = 0b00000001;  // channel 0 and 1 (registor address 0x6)
 //    UCA0TXBUF = Settings[position];
     //UCA0IFG |= UCTXIFG;
+    //selectIQR();
+    position = 0;
     UCA0TXBUF = Settings[position];
-   // if (sizeof(Settings) > 0) {
-//            UCA0TXBUF = Settings[0];  // Start with the first byte
-            //position = 1;             // Next byte to send
-        //}
+    while(position < sizeof(Settings)-1) {};
+    //de//selectIQR();
     return;
 }
 
@@ -172,21 +215,13 @@ void Setup_UART(void){
 
     UCA1CTLW0 |= UCSWRST;
 
-    UCA1CTLW0 |= UCSSEL__SMCLK; // Using SM clock
+    UCA1CTLW0 |= UCSSEL__SMCLK; // Using SM clock 1MHz
 
     //UCA1BRW = 6;              //For 9600
     UCA1BRW = 1;                //For 38400
 
     //UCA1MCTLW |= 0x2081;        //For 9600
     UCA1MCTLW |= 0x00A1;
-
-//    P1SEL1 &= ~BIT7; // Use pin 1.7 for UART TX to Bluetooth
-//    P1SEL0 |= BIT7;
-//
-//
-//    P1SEL1 &= ~BIT6; // Use pin1.6 for UART RX on Bluetooth
-//    P1SEL0 |= BIT6;
-
 
     UCA1CTLW0 &= ~UCSWRST; // Take UART A0 out of SW Reset
 }
@@ -200,6 +235,21 @@ void Setup_UART(void){
 //    UCA1TXBUF = UART_Message_Global[UART_Position_Counter];          //Put first value into the tx buffer
 //
 //}
+void Send_UART(unsigned int Channel1,unsigned int Channel2){
+    float vref = 3.3; // reference voltage ( this currently breaks the readADC code)
+    float floatValue1 = Channel1 * vref / 65535;
+    float floatValue2 = Channel2 * vref / 65535;
+    char print_value[100]; // Assuming this is max length for the print_value
+    // Use sprintf to format the string
+    sprintf(print_value, "\nChannel 1: %f\nChannel 2: %f", floatValue1, floatValue2);
+
+    int i = 0;
+        while (print_value[i] != '\0') {
+            UCA1TXBUF = print_value[i];
+            i++;
+        }
+    return;
+    }
 
 //--------------------------------------------------------------
 //-------Main----------------------------------------------
@@ -209,34 +259,44 @@ int main(void) {
 
     // Initialize SPI and configure the ADC
     initSPI();
-    configureADC();
-    //Setup_UART();
+    //spiWrite(0b01111000); // resets registers
     for (i = 0; i < 10; i++){}
+    unlock();
+    for (i = 0; i < 10; i++){}
+    configureADC();
+    Setup_UART();
 
-    unsigned char channel1Address = 0x01; // Address for Channel 0-1
-    unsigned char channel2Address = 0x23; // Address for Channel 2-3
+
     // Main loop
 
     while(1) {
-        // Read data from Channel 0-1
-        for (i = 0; i < 10; i++){}
-        changechannel(channel1Address);
-        for (i = 0; i < 10; i++){}
-        unsigned int dataChannel1 = readADC();
         for (i = 0; i < 100; i++){}
+        spiWrite(0b01101010); // start converstion
+        spiWrite(0b01110100); // resets the interupts i think!
+        for (i = 0; i < 100; i++){}
+        // Read data from Channel 0-1
+        spiWrite(0b01101000); // start converstion
+//        for (i = 0; i < 10; i++){}
+//        changechannel(channel1Address);
+////        for (i = 0; i < 100; i++){}
+////        spiWrite(0b01101000);
+//        for (i = 0; i < 10; i++){}
+//        unsigned int dataChannel1 = readADC();
+//        for (i = 0; i < 10; i++){}
         // Read data from Channel 2-3
-        changechannel(channel2Address);
+        //changechannel(channel2Address);
         for (i = 0; i < 10; i++){}
         unsigned int dataChannel2 = readADC();
-
         // Process the read data
         // ...
         // Add a delay or some condition to control the frequency of ADC reads
         // ...
         //spiRead();
-
-        //UCA1TXBUF = 'T';
+        //Send_UART(dataChannel1,dataChannel2);
         for (i = 0; i < 10000; i++){}
+        //UCA1TXBUF = (char)dataChannel1;
+        //UCA1TXBUF = 'T';
+
     }
 }
 //I hate data sheets!!
@@ -247,7 +307,7 @@ __interrupt void ISR_EUSCI_A0(void) {
         switch (UCA0IV)
         {
         case 0x02:  //RX Flag
-            spiReceivedData = UCA0RXBUF; // Read RX Buff
+            //spiReceivedData = UCA0RXBUF; // Read RX Buff
             UCA0IFG &= ~UCRXIFG;
             //UCA0IFG &= ~UCTXIFG;
             break;
@@ -263,6 +323,7 @@ __interrupt void ISR_EUSCI_A0(void) {
             {
                 UCA0TXBUF = ChanMux[1];
                 Muxed = 1;
+                //de//selectIQR();
                 UCA0IFG &= ~UCTXIFG;
             }
             else
@@ -281,14 +342,15 @@ __interrupt void ISR_EUSCI_A0(void) {
         }
 }
 
-//#pragma vector=EUSCI_A1_VECTOR
-//__interrupt void ISR_EUSCI_A1(void) {
+#pragma vector=EUSCI_A1_VECTOR
+__interrupt void ISR_EUSCI_A1(void) {
 //    if(position == sizeof(message)){
 //        UCA1IE &= UCTXCPTIE;
 //    }
 //    else{
 //        UCA1TXBUF = measage[position];
 //    }
-//    UCA1IFG &= ~UCTXCPTIFG;
-//}
+    UCA1IFG &= ~UCTXCPTIFG;
+    //UCA1IE &= ~UCTXCPTIE;
+}
 
