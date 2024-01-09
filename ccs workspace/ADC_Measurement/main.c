@@ -14,15 +14,15 @@ unsigned char spiReceivedData; // Define globally if used outside ISR
 //static unsigned char spiDataReceivedFlag; // Define globally if used outside ISR
 char Settings[] = {
         0b01000110, // CMD 0x46
-        0b01101111, // Config0 0x6F (0x01)
-        0b11000000, // Config1 0xC0
+        0b01111110, // Config0 0x7F (0x01)
+        0b00000000, // Config1 0xC0
         0b10001011, // Config2 0x8B
-        0b11000000, // Config3 0xC0
-        0b01110101, // IRQ 0x7B
-        0b00100011,  // MUX 0x01 - channel 0 and 1 (reg address 0x6)
-        0b00100000, // SCAN reg
-        0b00100011, // address
-        0b00101000};// end scan reg
+        0b10000000, // Config3 0xC0
+        0b01110111, // IRQ 0x7F
+        0b00100011};  // MUX 0x01 - channel 0 and 1 (reg address 0x6)
+//        0b00100000, // SCAN reg
+//        0b00100011, // address
+//        0b00101000};// end scan reg
 
 
 
@@ -98,7 +98,7 @@ void deselectIQR() {
 }
 
 //--------------------------------------------------------------
-//-------SPI Write--------z--------------------------------------
+//-------SPI Write----------------------------------------------
 //--------------------------------------------------------------
 void spiWrite(char data) {
     UCA0TXBUF = data;
@@ -122,36 +122,46 @@ unsigned int readADC() {
     unsigned int byte1,byte2; // assume MSBs, Then LSBs
     //char packet[2] = {0b01011011,address};
     // Send read command along with the address
-    //spiWrite(0b01000111); // read config regs
-    spiWrite(0b01000001); // 0x41 (write to read from 0x00 adc reg)
-    while (!(UCA0IFG & UCTXIFG));
+    spiWrite(0b01000011); // 0x41 (write to read from 0x00 adc reg)
+    while (!(UCTXIFG));
     spiWrite(0xFF); // dummy write so we can read
+    while (!(UCA0IFG & UCRXIFG));
     // Read the data from the ADC
     spiRead();     // read from 0x00 but the we can only read 2bytes
-    while (!(UCA0IFG & UCRXIFG));
+    //while (!(UCRXIFG));//while (!(UCA0IF& UCRXIFG));
     //    for (i = 0; i < 100; i++){}
     spiWrite(0xFF); // dummy write so we can read
+    while (!(UCTXIFG));
     //while ((UCA0IFG & UCTXIFG) == 0);
     // Read the data from the ADC
-    spiRead();
+    //spiRead();
     byte1 = spiRead();     // read from 0x00 but the we can only read 2bytes
     byte2 = spiRead();     // read from 0x00 trying to get 2nd 2bytes
-
-    //    int data = byte1;
-//    data = data << 8;
-//    data = data | byte2;
-//--- reads 4 more values
-//    for(i = 0; i < 35; i++){
-//        while (!(UCRXIFG));
-//        spiWrite(0xFF);
-//    }
-
     //while (UCA0IFG & UCTXIFG);
     int data = (byte1 << 8)| byte2;
    // deselectIQR();
     return data;
 }
-void unlock(){      // should
+
+void regcheck(){
+    for (i = 0; i < 100; i++){}
+        spiWrite(0b01000111); // read config regs 0x1starting address
+        while (!(UCA0IFG & UCTXIFG));
+        spiWrite(0xFF); // dummy write so we can read
+         // Read the data from the ADC
+        //spiRead();     // read from 0x00 but the we can only read 2bytes
+        while (!(UCA0IFG & UCRXIFG));
+           //    for (i = 0; i < 100; i++){}
+        spiWrite(0xFF); // dummy write so we can read
+        //--- reads 4 more values
+        for(i = 0; i < 35; i++){
+            while (!(UCRXIFG));
+            spiWrite(0xFF);
+        }
+    }
+
+
+void unlock(){      // unlock the register protection.
     //selectIQR();
     spiWrite(0x76);  // 0x76 0b01110110 write to 0xD
     spiWrite(0xA5); // 0xA5 the "password"
@@ -160,6 +170,14 @@ void unlock(){      // should
     for (i = 0; i < 100; i++){}
     //de//selectIQR();
     return;
+}
+
+void lock(){
+    spiWrite(0x76);  // 0x76 0b01110110 write to 0xD
+    spiWrite(0x00); // 0xA5 the "password"
+    //    while (!(UCA0IFG & UCTXIFG));
+    //    while (!(UCA0IFG & UCRXIFG))
+        for (i = 0; i < 100; i++){}
 }
 
 void changechannel(char address) {
@@ -235,21 +253,21 @@ void Setup_UART(void){
 //    UCA1TXBUF = UART_Message_Global[UART_Position_Counter];          //Put first value into the tx buffer
 //
 //}
-void Send_UART(unsigned int Channel1,unsigned int Channel2){
-    float vref = 3.3; // reference voltage ( this currently breaks the readADC code)
-    float floatValue1 = Channel1 * vref / 65535;
-    float floatValue2 = Channel2 * vref / 65535;
-    char print_value[100]; // Assuming this is max length for the print_value
-    // Use sprintf to format the string
-    sprintf(print_value, "\nChannel 1: %f\nChannel 2: %f", floatValue1, floatValue2);
-
-    int i = 0;
-        while (print_value[i] != '\0') {
-            UCA1TXBUF = print_value[i];
-            i++;
-        }
-    return;
-    }
+//void Send_UART(unsigned int Channel1,unsigned int Channel2){
+//    float vref = 3.3; // reference voltage ( this currently breaks the readADC code)
+//    float floatValue1 = Channel1 * vref / 65535;
+//    float floatValue2 = Channel2 * vref / 65535;
+//    char print_value[100]; // Assuming this is max length for the print_value
+//    // Use sprintf to format the string
+//    sprintf(print_value, "\nChannel 1: %f\nChannel 2: %f", floatValue1, floatValue2);
+//
+//    int i = 0;
+//        while (print_value[i] != '\0') {
+//            UCA1TXBUF = print_value[i];
+//            i++;
+//        }
+//    return;
+//    }
 
 //--------------------------------------------------------------
 //-------Main----------------------------------------------
@@ -258,26 +276,30 @@ int main(void) {
     WDTCTL = WDTPW | WDTHOLD;   // Stop watchdog timer
 
     // Initialize SPI and configure the ADC
+    //while(1){
     initSPI();
-    //spiWrite(0b01111000); // resets registers
+    spiWrite(0b01111000); // resets registers (works)
     for (i = 0; i < 10; i++){}
     unlock();
     for (i = 0; i < 10; i++){}
     configureADC();
-    Setup_UART();
-
-
+    //Setup_UART();
+    for (i = 0; i < 10; i++){}
+    //lock();
+   //}
     // Main loop
 
     while(1) {
-        for (i = 0; i < 100; i++){}
-        spiWrite(0b01101010); // start converstion
-        spiWrite(0b01110100); // resets the interupts i think!
-        for (i = 0; i < 100; i++){}
+//        for (i = 0; i < 100; i++){}
+//        spiWrite(0b01101010); // write to interupts
+//        spiWrite(0b01111111); // resets the interupts values
+//        for (i = 0; i < 100; i++){}
         // Read data from Channel 0-1
-        spiWrite(0b01101000); // start converstion
+        spiWrite(0b01101000); // start converstion 0x68
 //        for (i = 0; i < 10; i++){}
 //        changechannel(channel1Address);
+        for (i = 0; i < 100; i++){}
+        regcheck();
 ////        for (i = 0; i < 100; i++){}
 ////        spiWrite(0b01101000);
 //        for (i = 0; i < 10; i++){}
@@ -296,6 +318,11 @@ int main(void) {
         for (i = 0; i < 10000; i++){}
         //UCA1TXBUF = (char)dataChannel1;
         //UCA1TXBUF = 'T';
+//        while(1){
+//            spiWrite(0b01111000);
+//            for (i = 0; i < 100; i++){}
+//            regcheck();
+//        }
 
     }
 }
