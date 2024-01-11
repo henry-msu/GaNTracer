@@ -19,7 +19,7 @@ char Settings[] = {
         0b10001011, // Config2 0x8B
         0b10000000, // Config3 0xC0
         0b01110111, // IRQ 0x7F
-        0b00100011};  // MUX 0x01 - channel 0 and 1 (reg address 0x6)
+        0b00000001};//0b00100011};  // MUX 0x01 - channel 0 and 1 (reg address 0x6)
 //        0b00100000, // SCAN reg
 //        0b00100011, // address
 //        0b00101000};// end scan reg
@@ -124,38 +124,60 @@ unsigned int readADC() {
     // Send read command along with the address
     spiWrite(0b01000011); // 0x41 (write to read from 0x00 adc reg)
     while (!(UCTXIFG));
-    spiWrite(0xFF); // dummy write so we can read
-    while (!(UCA0IFG & UCRXIFG));
-    // Read the data from the ADC
-    spiRead();     // read from 0x00 but the we can only read 2bytes
-    //while (!(UCRXIFG));//while (!(UCA0IF& UCRXIFG));
-    //    for (i = 0; i < 100; i++){}
-    spiWrite(0xFF); // dummy write so we can read
-    while (!(UCTXIFG));
-    //while ((UCA0IFG & UCTXIFG) == 0);
-    // Read the data from the ADC
+    for(i = 0; i < 3; i++){
+       spiWrite(0xFF);
+       while (!(UCTXIFG));
+       spiRead();       // some sort of timing issue
+    }
+    spiRead();
     //spiRead();
     byte1 = spiRead();     // read from 0x00 but the we can only read 2bytes
+    while (!(UCA0IFG));
     byte2 = spiRead();     // read from 0x00 trying to get 2nd 2bytes
     //while (UCA0IFG & UCTXIFG);
     int data = (byte1 << 8)| byte2;
    // deselectIQR();
     return data;
 }
-
+//unsigned int readADC() {
+//    for (i = 0; i < 100; i++){}
+//    //selectIQR();
+//    unsigned int byte1,byte2; // assume MSBs, Then LSBs
+//    //char packet[2] = {0b01011011,address};
+//    // Send read command along with the address
+//    spiWrite(0b01000011); // 0x41 (write to read from 0x00 adc reg)
+//    while (!(UCTXIFG));
+//    spiWrite(0xFF); // dummy write so we can read
+//    while (!(UCA0IFG & UCRXIFG));
+//    // Read the data from the ADC
+//    spiRead();     // read from 0x00 but the we can only read 2bytes
+//    //while (!(UCRXIFG));//while (!(UCA0IF& UCRXIFG));
+//    //    for (i = 0; i < 100; i++){}
+//    spiWrite(0xFF); // dummy write so we can read
+//    while (!(UCTXIFG));
+//    //while ((UCA0IFG & UCTXIFG) == 0);
+//    // Read the data from the ADC
+//    spiRead();
+//    byte1 = spiRead();     // read from 0x00 but the we can only read 2bytes
+//    byte2 = spiRead();     // read from 0x00 trying to get 2nd 2bytes
+//    //while (UCA0IFG & UCTXIFG);
+//    int data = (byte1 << 8)| byte2;
+//   // deselectIQR();
+//    return data;
+//}
 void regcheck(){
     for (i = 0; i < 100; i++){}
         spiWrite(0b01000111); // read config regs 0x1starting address
         while (!(UCA0IFG & UCTXIFG));
-        spiWrite(0xFF); // dummy write so we can read
-         // Read the data from the ADC
-        //spiRead();     // read from 0x00 but the we can only read 2bytes
-        while (!(UCA0IFG & UCRXIFG));
-           //    for (i = 0; i < 100; i++){}
-        spiWrite(0xFF); // dummy write so we can read
+//        spiWrite(0xFF); // dummy write so we can read
+//         // Read the data from the ADC
+////        spiRead();     // read from 0x00 but the we can only read 2bytes
+////        while (!(UCA0IFG & UCRXIFG));
+//               for (i = 0; i < 10; i++){}
+//        spiWrite(0xFF); // dummy write so we can read
         //--- reads 4 more values
         for(i = 0; i < 35; i++){
-            while (!(UCRXIFG));
+            //while (!(UCRXIFG));
             spiWrite(0xFF);
         }
     }
@@ -294,19 +316,25 @@ int main(void) {
 //        spiWrite(0b01101010); // write to interupts
 //        spiWrite(0b01111111); // resets the interupts values
 //        for (i = 0; i < 100; i++){}
-        // Read data from Channel 0-1
-        spiWrite(0b01101000); // start converstion 0x68
-//        for (i = 0; i < 10; i++){}
-//        changechannel(channel1Address);
-        for (i = 0; i < 100; i++){}
-        regcheck();
+
+
+//        regcheck();
 ////        for (i = 0; i < 100; i++){}
 ////        spiWrite(0b01101000);
-//        for (i = 0; i < 10; i++){}
-//        unsigned int dataChannel1 = readADC();
-//        for (i = 0; i < 10; i++){}
+
+        //        for (i = 0; i < 10; i++){}y
+        // Read data from Channel 0-1
+        changechannel(channel1Address);
+        for (i = 0; i < 25; i++){}
+        spiWrite(0b01101000); // start converstion 0x68
+        for (i = 0; i < 10; i++){}
+        unsigned int dataChannel1 = readADC();
         // Read data from Channel 2-3
-        //changechannel(channel2Address);
+        //        for (i = 0; i < 10; i++){}
+        for (i = 0; i < 10; i++){}
+        changechannel(channel2Address);
+        for (i = 0; i < 25; i++){}
+        spiWrite(0b01101000); // start converstion 0x68
         for (i = 0; i < 10; i++){}
         unsigned int dataChannel2 = readADC();
         // Process the read data
@@ -315,7 +343,7 @@ int main(void) {
         // ...
         //spiRead();
         //Send_UART(dataChannel1,dataChannel2);
-        for (i = 0; i < 10000; i++){}
+        for (i = 0; i < 1000; i++){}
         //UCA1TXBUF = (char)dataChannel1;
         //UCA1TXBUF = 'T';
 //        while(1){
