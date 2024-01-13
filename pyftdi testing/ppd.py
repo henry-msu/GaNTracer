@@ -16,28 +16,29 @@ def print_results():
     print(f'\n--------------------------------')
     print(f'            RESULTS')
     print(f'--------------------------------')
-    print(f'Exchange size:        {data_size} bytes')
-    print(f'Total exchanges:      {exchanges}')
-    print(f'Successful exchanges: {successfulexchanges}')
-    print(f'Percent success:      ', end='')
+    print(f'Exchange size:         {data_size} bytes')
+    print(f'Total exchanges:       {exchanges}')
+    print(f'Successful exchanges:  {successfulexchanges}')
+    print(f'Percent success:       ', end='')
     if(percent == 1):
         cprint(f'{percent*100:.2f}%', "green")
     else:
         cprint(f'{percent*100:.2f}%', "red")
-    print(f'Total data exchanged: {2*data_size*exchanges} bytes')
-    print(f'Total time taken:     {total_time:.4f} s')
-    print(f'Data rate:            {((2*data_size*exchanges)/total_time)/1000:.4f} kB/s')
+    print(f'Total data exchanged:  {2*data_size*exchanges} bytes')
+    print(f'Total time taken:      {total_time:.4f} s')
+    print(f'Data rate (kilobytes): {((2*data_size*exchanges)/total_time)/1000:.4f} kB/s')
+    print(f'Data rate (kilobits):  {((2*data_size*exchanges)/total_time):.4f} kb/s')
     sys.exit(0)
 
 signal.signal(signal.SIGINT, print_results) # catch SIGINT
 
 spi = SpiController() # instantiate spi device
 spi.configure('ftdi://ftdi:232h/1') # use first ft232h enumerated (THIS WILL CHANGE SOON)
-slave = spi.get_port(cs=0, freq=1.75E6, mode=0) # Set up SPI master
+slave = spi.get_port(cs=0, freq=1.5E6, mode=0) # Set up SPI master
 
 successfulexchanges = 0; # how many exchanges were successful
 total_time = 0; # time for each exchange
-data_size = 2048; # how much data to transmit/receive. This is hardcoded in the MSP firmware so cannot ask user
+data_size = 2048; # how much data to transmit/receive in bytes. This is hardcoded in the MSP firmware so cannot ask user
 tic = 0;
 toc = 0;
 
@@ -54,7 +55,7 @@ for i in range(0, exchanges):
     data_out = random.choices(range(255),k=data_size); # generate some random 8 bit data
 
     hashout = hash(tuple(data_out)) # calculate hash of data to transmit
-    #print(f'Transmitted data hash: {hashout}')
+    print(f'Transmitted data hash: {hashout}')
 
     data_out.insert(0,0x00) # insert the "read" instruction to tell MSP to read data
     tic = time.perf_counter()
@@ -65,7 +66,7 @@ for i in range(0, exchanges):
     toc = time.perf_counter()
     total_time += toc-tic
     hashin = hash(tuple(data_in)) # calculate hash of received data
-    #print(f'Received data hash: {hashin}')
+    print(f'Received data hash:    {hashin}\n')
 
     if(hashout == hashin):
         successfulexchanges += 1
