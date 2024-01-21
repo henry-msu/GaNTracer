@@ -14,24 +14,28 @@ unsigned char spiReceivedData; // Define globally if used outside ISR
 //static unsigned char spiDataReceivedFlag; // Define globally if used outside ISR
 char Settings[] = {
         0b01000110, // CMD 0x46
-        0b01111110, // Config0 0x7F (0x01)
+        0b01110011, // Config0 0x7F (0x01)
         0b00000000, // Config1 0xC0
         0b10001011, // Config2 0x8B
-        0b10000000, // Config3 0xC0
+        0b10100010,//, 0b10000010// Config3 0xC0
         0b01110111, // IRQ 0x7F
         0b00000001};//0b00100011};  // MUX 0x01 - channel 0 and 1 (reg address 0x6)
 //        0b00100000, // SCAN reg
 //        0b00100011, // address
 //        0b00101000};// end scan reg
 
-
+#define NUM_SAMPLES 10
+// Global variables
+unsigned int samples1[NUM_SAMPLES];
+unsigned int samples2[NUM_SAMPLES];
+unsigned int currentIndex = 0;
 
 unsigned int position = 20;
 char ChanMux[2] = {0b01011010,0b00000000}; // 0x5B       // holds the 2 address we need to write to
 unsigned int Muxed = 1; // Keeps track if channel mux was changed 1(false)
 unsigned int i;
-char channel1Address = 0x01; // Address for Channel 0-1
-char channel2Address = 0x23; // Address for Channel 2-3
+char channel1Address = 0x01;//0x08;// single-ended CH0 //0x01; // Address for Channel 0-1
+char channel2Address = 0x23;//0x28;// single-ended CH2 //0x23; // Address for Channel 2-3
 // UART Global Variables
 #define max_UART_Length 64
 char UART_Message_Global[max_UART_Length];
@@ -49,7 +53,7 @@ void initSPI() {
     UCA0CTLW0 |= UCSWRST; // UCSWRST = 1 to put eUSCI_A0 into SW reset
     // configure eUSCI_A0
     UCA0CTLW0 |= UCSSEL__SMCLK; // eUSCI clock is SMCLK = 1MHz
-    UCA0BRW = 20;              // Prescaler = 10 to give SCLK = 100kHz
+    UCA0BRW = 26;              // Prescaler = 10 to give SCLK = 100kHz
     UCA0CTLW0 |= UCSYNC;
     UCA0CTLW0 |= UCMST;         // Master Select
 
@@ -109,13 +113,13 @@ void spiWrite(char data) {
 //-------------------------------------------------------------
 //-------SPI Read----------------------------------------------
 //--------------------------------------------------------------
+//-----4byte read ---------------
 unsigned char spiRead() {
     //UCA0IFG |= UCRXIFG;
     spiReceivedData = UCA0RXBUF; // Read RX Buff
     // Read and return the received data
     return spiReceivedData;
 }
-
 unsigned int readADC() {
     for (i = 0; i < 100; i++){}
     //selectIQR();
@@ -124,21 +128,24 @@ unsigned int readADC() {
     // Send read command along with the address
     spiWrite(0b01000011); // 0x41 (write to read from 0x00 adc reg)
     while (!(UCTXIFG));
-    for(i = 0; i < 3; i++){
+    for(i = 0; i < 12; i++){
        spiWrite(0xFF);
        while (!(UCTXIFG));
-       spiRead();       // some sort of timing issue
+
     }
-    spiRead();
     //spiRead();
+    spiRead();       // some sort of timing issue
+    spiRead();
     byte1 = spiRead();     // read from 0x00 but the we can only read 2bytes
-    while (!(UCA0IFG));
+    //while (!(UCA0IFG));
     byte2 = spiRead();     // read from 0x00 trying to get 2nd 2bytes
     //while (UCA0IFG & UCTXIFG);
     int data = (byte1 << 8)| byte2;
    // deselectIQR();
     return data;
 }
+
+//-----2byte read ---------------
 //unsigned int readADC() {
 //    for (i = 0; i < 100; i++){}
 //    //selectIQR();
@@ -147,24 +154,23 @@ unsigned int readADC() {
 //    // Send read command along with the address
 //    spiWrite(0b01000011); // 0x41 (write to read from 0x00 adc reg)
 //    while (!(UCTXIFG));
-//    spiWrite(0xFF); // dummy write so we can read
-//    while (!(UCA0IFG & UCRXIFG));
-//    // Read the data from the ADC
-//    spiRead();     // read from 0x00 but the we can only read 2bytes
-//    //while (!(UCRXIFG));//while (!(UCA0IF& UCRXIFG));
-//    //    for (i = 0; i < 100; i++){}
-//    spiWrite(0xFF); // dummy write so we can read
-//    while (!(UCTXIFG));
-//    //while ((UCA0IFG & UCTXIFG) == 0);
-//    // Read the data from the ADC
+//    for(i = 0; i < 3; i++){
+//       spiWrite(0xFF);
+//       while (!(UCTXIFG));
+//       spiRead();       // some sort of timing issue
+//    }
 //    spiRead();
+//    //spiRead();
 //    byte1 = spiRead();     // read from 0x00 but the we can only read 2bytes
+//    while (!(UCA0IFG));
 //    byte2 = spiRead();     // read from 0x00 trying to get 2nd 2bytes
 //    //while (UCA0IFG & UCTXIFG);
 //    int data = (byte1 << 8)| byte2;
 //   // deselectIQR();
 //    return data;
 //}
+//-----------------------------------------------------------------------
+//--------------------------------------------------------------------------------------
 void regcheck(){
     for (i = 0; i < 100; i++){}
         spiWrite(0b01000111); // read config regs 0x1starting address
@@ -214,6 +220,16 @@ void changechannel(char address) {
 //    //de//selectIQR();
     return;
 }
+
+void offset(char value1, char value2){    // needs to be two’s complement
+    spiWrite(0b01100110);  //  write to 0x9
+    spiWrite(value1); // should be 0xFF
+    while (!(UCTXIFG));
+    spiWrite(value2); // offset value
+    //    while (!(UCA0IFG & UCRXIFG))
+        for (i = 0; i < 100; i++){}
+}
+
 //--------------------------------------------------------------
 //-------ADC CONFIG----------------------------------------------
 //--------------------------------------------------------------
@@ -245,28 +261,31 @@ void configureADC() {
     return;
 }
 
-
-
 void Setup_UART(void){
     // Take eUSCI_B1 out of software reset with UCSWRST = 0
-    UCA1CTLW0 &= ~UCSWRST;
-
-    // UART Communication to PC, Setup UART A0 (Tx)
-
     UCA1CTLW0 |= UCSWRST;
-
+    // UART Communication to PC, Setup UART A1 (Tx)
+    UCA1CTLW0 |= UCSWRST;
     UCA1CTLW0 |= UCSSEL__SMCLK; // Using SM clock 1MHz
-
     //UCA1BRW = 6;              //For 9600
     UCA1BRW = 1;                //For 38400
-
     //UCA1MCTLW |= 0x2081;        //For 9600
     UCA1MCTLW |= 0x00A1;
-
-    UCA1CTLW0 &= ~UCSWRST; // Take UART A0 out of SW Reset
+    UCA1CTLW0 &= ~UCSWRST; // Take UART A1 out of SW `
 }
 
-
+void Send_UART(int value) {
+    while (!(UCA1IFG & UCTXIFG)); // Wait for TX buffer to be ready
+    UCA1TXBUF = (value >> 8) & 0xFF; // Send high byte
+    while (!(UCA1IFG & UCTXIFG)); // Wait for TX buffer to be ready
+    UCA1TXBUF = value & 0xFF; // Send low byte
+    return;
+}
+//void Send_UART(int value){
+//    UCA1IE |= UCTXCPTIE;                                             //Enable the TX IRQ
+//    UCA1IFG &= ~UCTXCPTIFG;                                          //Clear the TX IFG
+//    UCA1TXBUF = value;
+//}
 //void Send_UART_Message(int Size_UART_Message){
 //    UART_Position_Counter = 0;
 //    UART_Message_Length = Size_UART_Message;
@@ -275,22 +294,33 @@ void Setup_UART(void){
 //    UCA1TXBUF = UART_Message_Global[UART_Position_Counter];          //Put first value into the tx buffer
 //
 //}
-//void Send_UART(unsigned int Channel1,unsigned int Channel2){
-//    float vref = 3.3; // reference voltage ( this currently breaks the readADC code)
-//    float floatValue1 = Channel1 * vref / 65535;
-//    float floatValue2 = Channel2 * vref / 65535;
-//    char print_value[100]; // Assuming this is max length for the print_value
-//    // Use sprintf to format the string
-//    sprintf(print_value, "\nChannel 1: %f\nChannel 2: %f", floatValue1, floatValue2);
-//
-//    int i = 0;
-//        while (print_value[i] != '\0') {
-//            UCA1TXBUF = print_value[i];
-//            i++;
-//        }
-//    return;
-//    }
 
+// Function to update the samples array with a new value
+void updateSamples(unsigned int newValue1,signed int newValue2) {
+    samples1[currentIndex] = newValue1;
+    samples2[currentIndex] = newValue2;
+    currentIndex = (currentIndex + 1) % NUM_SAMPLES;
+    return;
+}
+
+// Function to calculate the average of the samples array
+unsigned int calculateAverage1() {
+    unsigned long sum = 0;
+    int d;
+    for (d = 0; d < NUM_SAMPLES; d++) {
+        sum += samples1[d];
+    }
+    return (unsigned int)(sum / NUM_SAMPLES);
+}
+// Function to calculate the average of the samples array
+unsigned int calculateAverage2() {
+    unsigned long sum = 0;
+    int d;
+    for (d = 0; d < NUM_SAMPLES; d++) {
+        sum += samples2[d];
+    }
+    return (unsigned int)(sum / NUM_SAMPLES);
+}
 //--------------------------------------------------------------
 //-------Main----------------------------------------------
 //--------------------------------------------------------------
@@ -305,12 +335,12 @@ int main(void) {
     unlock();
     for (i = 0; i < 10; i++){}
     configureADC();
-    //Setup_UART();
+    Setup_UART();
     for (i = 0; i < 10; i++){}
     //lock();
    //}
+    //offset(0b11111111, 0b11100000);  //-8 : 1111 1111 1111 1000
     // Main loop
-
     while(1) {
 //        for (i = 0; i < 100; i++){}
 //        spiWrite(0b01101010); // write to interupts
@@ -331,7 +361,7 @@ int main(void) {
         unsigned int dataChannel1 = readADC();
         // Read data from Channel 2-3
         //        for (i = 0; i < 10; i++){}
-        for (i = 0; i < 10; i++){}
+        for (i = 0; i < 100; i++){}
         changechannel(channel2Address);
         for (i = 0; i < 25; i++){}
         spiWrite(0b01101000); // start converstion 0x68
@@ -341,11 +371,20 @@ int main(void) {
         // ...
         // Add a delay or some condition to control the frequency of ADC reads
         // ...
-        //spiRead();
-        //Send_UART(dataChannel1,dataChannel2);
+        for (i = 0; i < 200; i++){}
+//------------------------------------------------
+//Average the readings--------------------------------
+//------------------------------------------------
+        // Update the samples array with the new value
+        updateSamples(dataChannel1,dataChannel2);
+        // Calculate the average of the samples array
+        unsigned int averagedValue1 = calculateAverage1();
+        unsigned int averagedValue2 = calculateAverage2();
+
+        Send_UART(averagedValue2);
         for (i = 0; i < 1000; i++){}
         //UCA1TXBUF = (char)dataChannel1;
-        //UCA1TXBUF = 'T';
+        UCA1TXBUF = 'T';
 //        while(1){
 //            spiWrite(0b01111000);
 //            for (i = 0; i < 100; i++){}
@@ -399,13 +438,23 @@ __interrupt void ISR_EUSCI_A0(void) {
 
 #pragma vector=EUSCI_A1_VECTOR
 __interrupt void ISR_EUSCI_A1(void) {
-//    if(position == sizeof(message)){
-//        UCA1IE &= UCTXCPTIE;
-//    }
-//    else{
-//        UCA1TXBUF = measage[position];
-//    }
-    UCA1IFG &= ~UCTXCPTIFG;
-    //UCA1IE &= ~UCTXCPTIE;
+    if (UCA1IFG & UCTXIFG) {
+        // Handle TX interrupt
+        UCA1IFG &= ~UCTXCPTIFG; // Clear TX interrupt flag
+    }
+    // Add other UART interrupt handling as needed
 }
+
+//#pragma vector=EUSCI_A1_VECTOR
+//__interrupt void ISR_EUSCI_A1(void) {
+////    if(position == sizeof(message)){
+////        UCA1IE &= UCTXCPTIE;
+////    }
+////    else{
+////        UCA1TXBUF = measage[position];
+////    }
+//    UCA1IFG &= ~UCTXCPTIFG;
+//    //UCA1IE &= ~UCTXCPTIE;
+//}
+
 
