@@ -17,7 +17,7 @@ char Settings[] = {
         0b01110011, // Config0 0x7F (0x01)
         0b00000000, // Config1 0xC0
         0b10001011, // Config2 0x8B
-        0b10100010,//, 0b10000010// Config3 0xC0
+        0b10000010,//, 0b10100010// Config3 0xC0
         0b01110111, // IRQ 0x7F
         0b00000001};//0b00100011};  // MUX 0x01 - channel 0 and 1 (reg address 0x6)
 //        0b00100000, // SCAN reg
@@ -113,39 +113,13 @@ void spiWrite(char data) {
 //-------------------------------------------------------------
 //-------SPI Read----------------------------------------------
 //--------------------------------------------------------------
-//-----4byte read ---------------
 unsigned char spiRead() {
     //UCA0IFG |= UCRXIFG;
     spiReceivedData = UCA0RXBUF; // Read RX Buff
     // Read and return the received data
     return spiReceivedData;
 }
-unsigned int readADC() {
-    for (i = 0; i < 100; i++){}
-    //selectIQR();
-    unsigned int byte1,byte2; // assume MSBs, Then LSBs
-    //char packet[2] = {0b01011011,address};
-    // Send read command along with the address
-    spiWrite(0b01000011); // 0x41 (write to read from 0x00 adc reg)
-    while (!(UCTXIFG));
-    for(i = 0; i < 12; i++){
-       spiWrite(0xFF);
-       while (!(UCTXIFG));
-
-    }
-    //spiRead();
-    spiRead();       // some sort of timing issue
-    spiRead();
-    byte1 = spiRead();     // read from 0x00 but the we can only read 2bytes
-    //while (!(UCA0IFG));
-    byte2 = spiRead();     // read from 0x00 trying to get 2nd 2bytes
-    //while (UCA0IFG & UCTXIFG);
-    int data = (byte1 << 8)| byte2;
-   // deselectIQR();
-    return data;
-}
-
-//-----2byte read ---------------
+//-----4byte read --------------
 //unsigned int readADC() {
 //    for (i = 0; i < 100; i++){}
 //    //selectIQR();
@@ -154,21 +128,46 @@ unsigned int readADC() {
 //    // Send read command along with the address
 //    spiWrite(0b01000011); // 0x41 (write to read from 0x00 adc reg)
 //    while (!(UCTXIFG));
-//    for(i = 0; i < 3; i++){
+//    for(i = 0; i < 12; i++){
 //       spiWrite(0xFF);
 //       while (!(UCTXIFG));
-//       spiRead();       // some sort of timing issue
+//
 //    }
-//    spiRead();
 //    //spiRead();
+//    spiRead();       // some sort of timing issue
+//    spiRead();
 //    byte1 = spiRead();     // read from 0x00 but the we can only read 2bytes
-//    while (!(UCA0IFG));
+//    //while (!(UCA0IFG));
 //    byte2 = spiRead();     // read from 0x00 trying to get 2nd 2bytes
 //    //while (UCA0IFG & UCTXIFG);
 //    int data = (byte1 << 8)| byte2;
 //   // deselectIQR();
 //    return data;
 //}
+
+//-----2byte read ---------------
+unsigned int readADC() {
+    for (i = 0; i < 100; i++){}
+    //selectIQR();
+    unsigned int byte1,byte2; // assume MSBs, Then LSBs
+    //char packet[2] = {0b01011011,address};
+    // Send read command along with the address
+    spiWrite(0b01000011); // 0x41 (write to read from 0x00 adc reg)
+    while (!(UCTXIFG));
+    for(i = 0; i < 4; i++){
+       spiWrite(0xFF);
+       while (!(UCTXIFG));
+       spiRead();       // some sort of timing issue
+    }
+    spiRead();
+    byte1 = spiRead();     // read from 0x00 but the we can only read 2bytes
+    while (!(UCA0IFG));
+    byte2 = spiRead();     // read from 0x00 trying to get 2nd 2bytes
+    //while (UCA0IFG & UCTXIFG);
+    int data = (byte1 << 8)| byte2;
+   // deselectIQR();
+    return data;
+}
 //-----------------------------------------------------------------------
 //--------------------------------------------------------------------------------------
 void regcheck(){
@@ -241,7 +240,6 @@ void configureADC() {
 //    // Configuration settings
 //    char Reg_Address = 0b00000100; // Value for Config0 [0x1]
 //    char RWSetting = 0b00000010; // Value for Writing (0x02)
-//
 //    char configValue;// 0b01000110
 //    // Combine the settings for ADC Address
 //    configValue = SPIAddress | Reg_Address | RWSetting;
@@ -260,7 +258,9 @@ void configureADC() {
     //de//selectIQR();
     return;
 }
-
+//---------------------------------------------------------
+// Sends the Data for easier viewing
+//-------------------------------------------------------
 void Setup_UART(void){
     // Take eUSCI_B1 out of software reset with UCSWRST = 0
     UCA1CTLW0 |= UCSWRST;
@@ -271,21 +271,33 @@ void Setup_UART(void){
     UCA1BRW = 1;                //For 38400
     //UCA1MCTLW |= 0x2081;        //For 9600
     UCA1MCTLW |= 0x00A1;
-    UCA1CTLW0 &= ~UCSWRST; // Take UART A1 out of SW `
+    P4SEL1 &= ~BIT3;
+    P4SEL0 |= BIT3;
+    UCA1CTLW0 &= ~UCSWRST; // Take UART A1 out of SW
+    UCA1IFG &= ~UCTXIFG;                      // Clear RXFLG  Flag
+    UCA1IE |= UCTXIE; // Enable USCI_A1 TX interrupt
 }
 
-void Send_UART(int value) {
-    while (!(UCA1IFG & UCTXIFG)); // Wait for TX buffer to be ready
-    UCA1TXBUF = (value >> 8) & 0xFF; // Send high byte
-    while (!(UCA1IFG & UCTXIFG)); // Wait for TX buffer to be ready
-    UCA1TXBUF = value & 0xFF; // Send low byte
-    return;
-}
-//void Send_UART(int value){
+//void Send_UART(int value) {
+////    while (!(UCA1IFG)); // Wait for TX buffer to be ready for high byte
+//    UCA1TXBUF = (value >> 8) & 0xFF; // Send high byte
+//    for (i = 0; i < 100; i++){}
+////    while (!(UCA1IFG)); // Wait for TX buffer to be ready for low byte
+//    UCA1TXBUF = value & 0xFF; // Send low byte
+//    for (i = 0; i < 100; i++){}
+////    while (!(UCA1IFG & UCTXIFG)); // Wait for TX buffer to be ready for newline
+////    UCA1TXBUF = '\r'; // Send carriage return
+//
+////    while (!(UCA1IFG)); // Wait for TX buffer to be ready for newline
+//    UCA1TXBUF = '\n'; // Send newline
+//    for (i = 0; i < 100; i++){}
+//}
+
+void Send_UART(int value){
 //    UCA1IE |= UCTXCPTIE;                                             //Enable the TX IRQ
 //    UCA1IFG &= ~UCTXCPTIFG;                                          //Clear the TX IFG
-//    UCA1TXBUF = value;
-//}
+    UCA1TXBUF = value;
+}
 //void Send_UART_Message(int Size_UART_Message){
 //    UART_Position_Counter = 0;
 //    UART_Message_Length = Size_UART_Message;
@@ -326,7 +338,6 @@ unsigned int calculateAverage2() {
 //--------------------------------------------------------------
 int main(void) {
     WDTCTL = WDTPW | WDTHOLD;   // Stop watchdog timer
-
     // Initialize SPI and configure the ADC
     //while(1){
     initSPI();
@@ -335,7 +346,7 @@ int main(void) {
     unlock();
     for (i = 0; i < 10; i++){}
     configureADC();
-    Setup_UART();
+    //Setup_UART();
     for (i = 0; i < 10; i++){}
     //lock();
    //}
@@ -378,13 +389,13 @@ int main(void) {
         // Update the samples array with the new value
         updateSamples(dataChannel1,dataChannel2);
         // Calculate the average of the samples array
-        unsigned int averagedValue1 = calculateAverage1();
-        unsigned int averagedValue2 = calculateAverage2();
+        unsigned int averagedCH0 = calculateAverage1();
+        unsigned int averagedCH2 = calculateAverage2();
 
-        Send_UART(averagedValue2);
-        for (i = 0; i < 1000; i++){}
+        for (i = 0; i < 200; i++){}
+        //Send_UART(averagedCH2);
         //UCA1TXBUF = (char)dataChannel1;
-        UCA1TXBUF = 'T';
+        //UCA1TXBUF = 'T';
 //        while(1){
 //            spiWrite(0b01111000);
 //            for (i = 0; i < 100; i++){}
@@ -424,14 +435,16 @@ __interrupt void ISR_EUSCI_A0(void) {
             {
                 UCA0IFG &= ~UCTXIFG;
             }
-
+            break;
 //            while ((UCA0IFG & UCRXIFG) == 0);
 //            UCA0IFG &= ~UCTXIFG;
 //            UCA0IFG &= ~UCTXIFG;
            // __delay_cycles_cycles(40);
 //            }
-            break;
+
         default:
+            //UCA0IFG &= ~UCTXIFG;
+            //UCA0IFG &= ~UCRXIFG;
             break;
         }
 }
@@ -440,7 +453,7 @@ __interrupt void ISR_EUSCI_A0(void) {
 __interrupt void ISR_EUSCI_A1(void) {
     if (UCA1IFG & UCTXIFG) {
         // Handle TX interrupt
-        UCA1IFG &= ~UCTXCPTIFG; // Clear TX interrupt flag
+        UCA1IFG &= ~UCTXIFG; // Clear TX interrupt flag
     }
     // Add other UART interrupt handling as needed
 }
