@@ -24,13 +24,13 @@ char Settings[] = {
 //        0b00100011, // address
 //        0b00101000};// end scan reg
 
-#define NUM_SAMPLES 10
+#define NUM_SAMPLES 20
 // Global variables
 unsigned int samples1[NUM_SAMPLES];
 unsigned int samples2[NUM_SAMPLES];
 unsigned int currentIndex = 0;
 
-unsigned int position = 20;
+unsigned int position;
 char ChanMux[2] = {0b01011010,0b00000000}; // 0x5B       // holds the 2 address we need to write to
 unsigned int Muxed = 1; // Keeps track if channel mux was changed 1(false)
 unsigned int i;
@@ -160,8 +160,9 @@ unsigned int readADC() {
        spiRead();       // some sort of timing issue
     }
     spiRead();
+    while (!(UCA0IFG & UCRXIFG));
     byte1 = spiRead();     // read from 0x00 but the we can only read 2bytes
-    while (!(UCA0IFG));
+    while (!(UCA0IFG & UCRXIFG));
     byte2 = spiRead();     // read from 0x00 trying to get 2nd 2bytes
     //while (UCA0IFG & UCTXIFG);
     int data = (byte1 << 8)| byte2;
@@ -278,26 +279,35 @@ void Setup_UART(void){
     UCA1IE |= UCTXIE; // Enable USCI_A1 TX interrupt
 }
 
-//void Send_UART(int value) {
-////    while (!(UCA1IFG)); // Wait for TX buffer to be ready for high byte
-//    UCA1TXBUF = (value >> 8) & 0xFF; // Send high byte
+void Send_UART(int value) {
+    while (!(UCA1IFG & UCTXIFG)); // Wait for TX buffer to be ready for high byte
+    UCA1TXBUF = (value >> 8) & 0xFF; // Send high byte
 //    for (i = 0; i < 100; i++){}
-////    while (!(UCA1IFG)); // Wait for TX buffer to be ready for low byte
-//    UCA1TXBUF = value & 0xFF; // Send low byte
+    while (!(UCA1IFG & UCTXIFG)); // Wait for TX buffer to be ready for low byte
+    UCA1TXBUF = value & 0xFF; // Send low byte
 //    for (i = 0; i < 100; i++){}
-////    while (!(UCA1IFG & UCTXIFG)); // Wait for TX buffer to be ready for newline
-////    UCA1TXBUF = '\r'; // Send carriage return
+    while (!(UCA1IFG & UCTXIFG)); // Wait for TX buffer to be ready for newline
+    UCA1TXBUF = '\r'; // Send carriage return
+
+    while (!(UCA1IFG & UCTXIFG)); // Wait for TX buffer to be ready for newline
+    UCA1TXBUF = '\n'; // Send newline
+//    for (i = 0; i < 100; i++){}
+}
+//void Send_UART(unsigned int value) {
+//    char numStr[7]; // Enough for 5 digits plus '\r\n\0'
+//    sprintf(numStr, "%u\r\n", value); // Convert to string and append CRLF
 //
-////    while (!(UCA1IFG)); // Wait for TX buffer to be ready for newline
-//    UCA1TXBUF = '\n'; // Send newline
-//    for (i = 0; i < 100; i++){}
+//    for (i = 0; numStr[i] != '\0'; i++) {
+//        while (!(UCA1IFG & UCTXIFG)); // Wait for TX buffer to be ready
+//        UCA1TXBUF = numStr[i]; // Send character
+//    }
 //}
 
-void Send_UART(int value){
-//    UCA1IE |= UCTXCPTIE;                                             //Enable the TX IRQ
-//    UCA1IFG &= ~UCTXCPTIFG;                                          //Clear the TX IFG
-    UCA1TXBUF = value;
-}
+//void Send_UART(int value){
+////    UCA1IE |= UCTXCPTIE;                                             //Enable the TX IRQ
+////    UCA1IFG &= ~UCTXCPTIFG;                                          //Clear the TX IFG
+//    UCA1TXBUF = value;
+//}
 //void Send_UART_Message(int Size_UART_Message){
 //    UART_Position_Counter = 0;
 //    UART_Message_Length = Size_UART_Message;
@@ -393,7 +403,7 @@ int main(void) {
         unsigned int averagedCH2 = calculateAverage2();
 
         for (i = 0; i < 200; i++){}
-        //Send_UART(averagedCH2);
+        Send_UART(averagedCH2);
         //UCA1TXBUF = (char)dataChannel1;
         //UCA1TXBUF = 'T';
 //        while(1){
@@ -406,57 +416,82 @@ int main(void) {
 }
 //I hate data sheets!!
 //MSP430 chapter 23
+//#pragma vector=EUSCI_A0_VECTOR
+//__interrupt void ISR_EUSCI_A0(void) {
+//    //__interrupt void EUSCI_B0_I2C_ISR(void)
+//        switch (UCA0IV)
+//        {
+//        case 0x02:  //RX Flag
+//            //spiReceivedData = UCA0RXBUF; // Read RX Buff
+//            UCA0IFG &= ~UCRXIFG;
+//            //UCA0IFG &= ~UCTXIFG;
+//            break;
+//
+//        case 0x04:  // TX Flag
+//            if (position < sizeof(Settings)-1)
+//            {
+//                position++;
+//                UCA0TXBUF = Settings[position];
+//                UCA0IFG &= ~UCTXIFG;
+//            }
+//            else if (Muxed == 0)
+//            {
+//                UCA0TXBUF = ChanMux[1];
+//                Muxed = 1;
+//                //de//selectIQR();
+//                UCA0IFG &= ~UCTXIFG;
+//            }
+//            else
+//            {
+//                UCA0IFG &= ~UCTXIFG;
+//            }
+//            break;
+////            while ((UCA0IFG & UCRXIFG) == 0);
+////            UCA0IFG &= ~UCTXIFG;
+////            UCA0IFG &= ~UCTXIFG;
+//           // __delay_cycles_cycles(40);
+////            }
+//
+//        default:
+//            UCA0IFG &= ~UCTXIFG;
+//            UCA0IFG &= ~UCRXIFG;
+//            break;
+//        }
+//}
 #pragma vector=EUSCI_A0_VECTOR
 __interrupt void ISR_EUSCI_A0(void) {
-    //__interrupt void EUSCI_B0_I2C_ISR(void)
-        switch (UCA0IV)
-        {
-        case 0x02:  //RX Flag
-            //spiReceivedData = UCA0RXBUF; // Read RX Buff
-            UCA0IFG &= ~UCRXIFG;
-            //UCA0IFG &= ~UCTXIFG;
+    switch (UCA0IV) {
+        case 0x02:  // RX Flag
+            spiReceivedData = UCA0RXBUF;  // Read RX Buffer and store in global variable
             break;
 
         case 0x04:  // TX Flag
-            if (position < sizeof(Settings)-1)
-            {
-                position++;
-                UCA0TXBUF = Settings[position];
-                UCA0IFG &= ~UCTXIFG;
-            }
-            else if (Muxed == 0)
-            {
-                UCA0TXBUF = ChanMux[1];
+            if (position < sizeof(Settings) - 1) {
+                UCA0TXBUF = Settings[++position];  // Load next byte into TX buffer
+            } else if (!Muxed) {
+                UCA0TXBUF = ChanMux[1];  // Change the multiplexer channel if needed
                 Muxed = 1;
-                //de//selectIQR();
-                UCA0IFG &= ~UCTXIFG;
-            }
-            else
-            {
-                UCA0IFG &= ~UCTXIFG;
             }
             break;
-//            while ((UCA0IFG & UCRXIFG) == 0);
-//            UCA0IFG &= ~UCTXIFG;
-//            UCA0IFG &= ~UCTXIFG;
-           // __delay_cycles_cycles(40);
-//            }
 
         default:
-            //UCA0IFG &= ~UCTXIFG;
-            //UCA0IFG &= ~UCRXIFG;
+            // No other cases handled
             break;
-        }
+    }
 }
+
 
 #pragma vector=EUSCI_A1_VECTOR
 __interrupt void ISR_EUSCI_A1(void) {
     if (UCA1IFG & UCTXIFG) {
-        // Handle TX interrupt
-        UCA1IFG &= ~UCTXIFG; // Clear TX interrupt flag
+        // Add code here to load the next byte into UCA1TXBUF if you have more data to send
+        // Example: UCA1TXBUF = next_byte_to_send;
+        // Make sure to track the end of your data to avoid buffer overruns
+
+        UCA1IFG &= ~UCTXIFG;  // Clear TX interrupt flag
     }
-    // Add other UART interrupt handling as needed
 }
+
 
 //#pragma vector=EUSCI_A1_VECTOR
 //__interrupt void ISR_EUSCI_A1(void) {
