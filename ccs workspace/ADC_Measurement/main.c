@@ -80,8 +80,8 @@ void initSPI() {
     // Enable IRQ
     UCA0IFG &= ~UCRXIFG;                      // Clear RXFLG  Flag
     UCA0IE |= UCRXIE;                         // Enable RXIFG IRQS
-    UCA0IFG &= ~UCTXIFG;                      // Clear RXFLG  Flag
-    UCA0IE |= UCTXIE;                         // Enable RXIFG IRQS
+    UCA0IFG &= ~UCTXIFG;                      // Clear TXFLG  Flag
+    UCA0IE |= UCTXIE;                         // Enable TXIFG IRQS
 
     __enable_interrupt();                    // Enable Maskable IRQs
 }
@@ -263,59 +263,90 @@ void configureADC() {
 // Sends the Data for easier viewing
 //-------------------------------------------------------
 void Setup_UART(void){
-    // Take eUSCI_B1 out of software reset with UCSWRST = 0
+//    // Take eUSCI_B1 out of software reset with UCSWRST = 0
+//    UCA1CTLW0 |= UCSWRST;
+//    // UART Communication to PC, Setup UART A1 (Tx)
+//    UCA1CTLW0 |= UCSSEL__SMCLK; // Using SM clock 1MHz
+//    //UCA1BRW = 6;              //For 9600
+//    UCA1BRW = 1;                //For 38400
+//    //UCA1MCTLW |= 0x2081;        //For 9600
+//    UCA1MCTLW |= 0x00A1;
+//    P4SEL1 &= ~BIT3;
+//    P4SEL0 |= BIT3;
+//    UCA1CTLW0 &= ~UCSWRST; // Take UART A1 out of SW
+//    UCA1IFG &= ~UCTXIFG;            // Clear RXFLG  Flag
+//    UCA1IE |= UCTXIE; // Enable USCI_A1 TX interrupt
+//    UCA1IE |= UCTXCPTIE;
+//    UCA1IFG &= ~UCTXCPTIFG;
+    // Set up UART on eUSCI_A1
+    // P4.2: UCA1RXD
+    // P4.3: UCA1TXD
+    // BRCLK = SMCLK = 1 MHz
+    // 115200 baud, currently my functions break at lower baud rates
+    static const uint8_t UCOS = 0;
+    static const uint16_t BRx = 8;
+    static const uint8_t BRFx = 0;
+    static const uint8_t BRSx = 0xD6;
+
     UCA1CTLW0 |= UCSWRST;
-    // UART Communication to PC, Setup UART A1 (Tx)
-    UCA1CTLW0 |= UCSWRST;
-    UCA1CTLW0 |= UCSSEL__SMCLK; // Using SM clock 1MHz
-    //UCA1BRW = 6;              //For 9600
-    UCA1BRW = 1;                //For 38400
-    //UCA1MCTLW |= 0x2081;        //For 9600
-    UCA1MCTLW |= 0x00A1;
-    P4SEL1 &= ~BIT3;
-    P4SEL0 |= BIT3;
-    UCA1CTLW0 &= ~UCSWRST; // Take UART A1 out of SW
-    UCA1IFG &= ~UCTXIFG;                      // Clear RXFLG  Flag
-    UCA1IE |= UCTXIE; // Enable USCI_A1 TX interrupt
+    UCA1CTLW0 &= ~(UCSSEL | UCSYNC | UCMODE); // clear clock source, put in UART mode
+    UCA1CTLW0 |= UCSSEL__SMCLK; // BRCLK = SMCLK
+    UCA1BRW = BRx;
+    UCA1MCTLW = (BRSx << 8) | (BRFx << 4) | UCOS;
+
+    UCA1CTLW0 &= ~UCSWRST; // enable module
+    UCA1IFG &= ~UCTXIFG;
+    UCA1IE |= UCTXIE; // enable TX interrupt
+
+    // Change P4.2 and P4.3 to UART mode
+    P4SEL0 |= BIT2 | BIT3;
+    P4SEL1 &= ~(BIT2 | BIT3);
 }
 
-void Send_UART(int value) {
-    while (!(UCA1IFG & UCTXIFG)); // Wait for TX buffer to be ready for high byte
-    UCA1TXBUF = (value >> 8) & 0xFF; // Send high byte
-//    for (i = 0; i < 100; i++){}
-    while (!(UCA1IFG & UCTXIFG)); // Wait for TX buffer to be ready for low byte
-    UCA1TXBUF = value & 0xFF; // Send low byte
-//    for (i = 0; i < 100; i++){}
-    while (!(UCA1IFG & UCTXIFG)); // Wait for TX buffer to be ready for newline
-    UCA1TXBUF = '\r'; // Send carriage return
+//void Send_UART(int value) {
+//    while (!(UCA1IFG & UCTXIFG)); // Wait for TX buffer to be ready for high byte
+//    UCA1TXBUF = (value >> 8) & 0xFF; // Send high byte
+////    for (i = 0; i < 100; i++){}
+//    while (!(UCA1IFG & UCTXIFG)); // Wait for TX buffer to be ready for low byte
+//    UCA1TXBUF = value & 0xFF; // Send low byte
+////    for (i = 0; i < 100; i++){}
+//    while (!(UCA1IFG & UCTXIFG)); // Wait for TX buffer to be ready for newline
+//    UCA1TXBUF = '\r'; // Send carriage return
+//
+//    while (!(UCA1IFG & UCTXIFG)); // Wait for TX buffer to be ready for newline
+//    UCA1TXBUF = '\n'; // Send newline
+////    for (i = 0; i < 100; i++){}
+//}
+void Send_UART(unsigned int value) {
+    char numStr[7]; // Enough for 5 digits plus '\r\n\0'
+    sprintf(numStr, "%u\r\n", value); // Convert to string and append CRLF
 
-    while (!(UCA1IFG & UCTXIFG)); // Wait for TX buffer to be ready for newline
-    UCA1TXBUF = '\n'; // Send newline
-//    for (i = 0; i < 100; i++){}
+    for (i = 0; numStr[i] != '\0'; i++) {
+        //UCA1TXBUF = 'T';
+        while (!(UCA1IFG & UCTXIFG)); // Wait for TX buffer to be ready
+        UCA1TXBUF = numStr[i]; // Send character
+    }
 }
-//void Send_UART(unsigned int value) {
-//    char numStr[7]; // Enough for 5 digits plus '\r\n\0'
-//    sprintf(numStr, "%u\r\n", value); // Convert to string and append CRLF
-//
-//    for (i = 0; numStr[i] != '\0'; i++) {
-//        while (!(UCA1IFG & UCTXIFG)); // Wait for TX buffer to be ready
-//        UCA1TXBUF = numStr[i]; // Send character
-//    }
-//}
 
-//void Send_UART(int value){
-////    UCA1IE |= UCTXCPTIE;                                             //Enable the TX IRQ
-////    UCA1IFG &= ~UCTXCPTIFG;                                          //Clear the TX IFG
-//    UCA1TXBUF = value;
-//}
-//void Send_UART_Message(int Size_UART_Message){
-//    UART_Position_Counter = 0;
-//    UART_Message_Length = Size_UART_Message;
-//    UCA1IE |= UCTXCPTIE;                                             //Enable the TX IRQ
-//    UCA1IFG &= ~UCTXCPTIFG;                                          //Clear the TX IFG
-//    UCA1TXBUF = UART_Message_Global[UART_Position_Counter];          //Put first value into the tx buffer
-//
-//}
+void UARTtxByte(uint8_t data) {
+    while (UCA1IFG & UCTXIFG);
+    UCA1TXBUF = data; // send byte
+    do {
+        LPM0; // enter low power mode and wait for byte to finish sending
+    } while (UCA1IFG & UCTXIFG);
+}
+
+// UARTtxBytes: Transmit n bytes over UART
+void UARTtxBytes(uint8_t* data, uint32_t n) {
+    uint32_t i;
+    while (UCA1IFG & UCTXIFG);
+    for (i = 0; i < n; i++) {
+        UCA1TXBUF = data[i];
+        do {
+            LPM0; // enter low power mode and wait for byte to finish sending
+        } while (UCA1IFG & UCTXIFG);
+    }
+}
 
 // Function to update the samples array with a new value
 void updateSamples(unsigned int newValue1,signed int newValue2) {
@@ -350,13 +381,18 @@ int main(void) {
     WDTCTL = WDTPW | WDTHOLD;   // Stop watchdog timer
     // Initialize SPI and configure the ADC
     //while(1){
+    char* numstr = malloc(32*sizeof(char));
+    char* numstr2 = malloc(32*sizeof(char));
+    uint8_t A = 'A';
+    uint8_t B = 'B';
+    Setup_UART();
     initSPI();
     spiWrite(0b01111000); // resets registers (works)
     for (i = 0; i < 10; i++){}
     unlock();
     for (i = 0; i < 10; i++){}
     configureADC();
-    //Setup_UART();
+
     for (i = 0; i < 10; i++){}
     //lock();
    //}
@@ -403,61 +439,38 @@ int main(void) {
         unsigned int averagedCH2 = calculateAverage2();
 
         for (i = 0; i < 200; i++){}
-        Send_UART(averagedCH2);
+        //Send_UART(averagedCH2);
         //UCA1TXBUF = (char)dataChannel1;
         //UCA1TXBUF = 'T';
 //        while(1){
 //            spiWrite(0b01111000);
 //            for (i = 0; i < 100; i++){}
 //            regcheck();
-//        }
+        float vref = 3.3; // reference voltage ( this currently breaks the readADC code)
+        float floatValue1 = dataChannel1 * vref / 32767; //2^15-1
+        float floatValue2 = dataChannel2 * vref / 32767;
+        float num = floatValue1;
+        float num2 = floatValue2;
+        int n = 0;
+        int n2 = 0;
+        n = snprintf(numstr, 32, "%f\r\n", num);
+        n2 = snprintf(numstr2, 32, "%f\r\n", num2);
+
+        // Main loop
+        //while(1) {
+        UARTtxByte(A);
+        UARTtxBytes(numstr, 32);
+        for (i = 0; i < 200; i++){}
+        UARTtxByte(B);
+        UARTtxBytes(numstr2, 32);
+        for (i = 0; i < 20; i++){}
+        //}
 
     }
 }
 //I hate data sheets!!
 //MSP430 chapter 23
-//#pragma vector=EUSCI_A0_VECTOR
-//__interrupt void ISR_EUSCI_A0(void) {
-//    //__interrupt void EUSCI_B0_I2C_ISR(void)
-//        switch (UCA0IV)
-//        {
-//        case 0x02:  //RX Flag
-//            //spiReceivedData = UCA0RXBUF; // Read RX Buff
-//            UCA0IFG &= ~UCRXIFG;
-//            //UCA0IFG &= ~UCTXIFG;
-//            break;
-//
-//        case 0x04:  // TX Flag
-//            if (position < sizeof(Settings)-1)
-//            {
-//                position++;
-//                UCA0TXBUF = Settings[position];
-//                UCA0IFG &= ~UCTXIFG;
-//            }
-//            else if (Muxed == 0)
-//            {
-//                UCA0TXBUF = ChanMux[1];
-//                Muxed = 1;
-//                //de//selectIQR();
-//                UCA0IFG &= ~UCTXIFG;
-//            }
-//            else
-//            {
-//                UCA0IFG &= ~UCTXIFG;
-//            }
-//            break;
-////            while ((UCA0IFG & UCRXIFG) == 0);
-////            UCA0IFG &= ~UCTXIFG;
-////            UCA0IFG &= ~UCTXIFG;
-//           // __delay_cycles_cycles(40);
-////            }
-//
-//        default:
-//            UCA0IFG &= ~UCTXIFG;
-//            UCA0IFG &= ~UCRXIFG;
-//            break;
-//        }
-//}
+
 #pragma vector=EUSCI_A0_VECTOR
 __interrupt void ISR_EUSCI_A0(void) {
     switch (UCA0IV) {
@@ -479,30 +492,38 @@ __interrupt void ISR_EUSCI_A0(void) {
             break;
     }
 }
-
-
-#pragma vector=EUSCI_A1_VECTOR
-__interrupt void ISR_EUSCI_A1(void) {
-    if (UCA1IFG & UCTXIFG) {
-        // Add code here to load the next byte into UCA1TXBUF if you have more data to send
-        // Example: UCA1TXBUF = next_byte_to_send;
-        // Make sure to track the end of your data to avoid buffer overruns
-
-        UCA1IFG &= ~UCTXIFG;  // Clear TX interrupt flag
+// EUSCI_A1_ISR: exits low power mode when necessary
+#pragma vector = EUSCI_A1_VECTOR
+__interrupt void EUSCI_A1_ISR(void) {
+    switch (__even_in_range(UCA1IV, UCIV__UCTXCPTIFG)) { // determine what interrupt was triggered
+    case UCIV__UCTXIFG:
+        LPM0_EXIT;
+        break;
+    default:
+        break;
     }
-}
+} // end EUSCI_A1_ISR
 
-
+//
 //#pragma vector=EUSCI_A1_VECTOR
 //__interrupt void ISR_EUSCI_A1(void) {
-////    if(position == sizeof(message)){
-////        UCA1IE &= UCTXCPTIE;
+////    if (UCA1IFG & UCTXIFG) {
+////        // Add code here to load the next byte into UCA1TXBUF if you have more data to send
+////        // Example: UCA1TXBUF = next_byte_to_send;
+////        // Make sure to track the end of your data to avoid buffer overruns
+////
+////        UCA1IFG &= ~UCTXIFG;  // Clear TX interrupt flag
 ////    }
-////    else{
-////        UCA1TXBUF = measage[position];
-////    }
-//    UCA1IFG &= ~UCTXCPTIFG;
-//    //UCA1IE &= ~UCTXCPTIE;
+//    switch (UCA0IV) {
+//
+//        case 0x04:  // TX Flag
+//            //UCA1IFG &= ~UCTXCPTIFG;
+//            //UCA1IFG &= ~UCTXIFG;
+//            break;
+//
+//        default:
+//            // No other cases handled
+//            break;
+//    }
 //}
-
 
