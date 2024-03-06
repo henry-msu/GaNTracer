@@ -3,29 +3,29 @@
  *
  *  FT232H                   MSP430FR2355
  * --------|               |----------------|
- *       DO|->Data Out---->|P1.2 (UCB0SIMO) |
+ *       DO|->Data Out---->|P1.4 (UCA0SIMO) |
  *         |               |                |
- *       DI|->Data In----->|P1.3 (UCB0SOMI) |
+ *       DI|->Data In----->|P1.5 (UCA0SOMI) |
  *         |               |                |
- *       SK|->Clock------->|P1.1 (UCB0CLK)  |
+ *       SK|->Clock------->|P1.6 (UCA0CLK)  |
  *         |               |                |
- *       CS|->Chip select->|P1.0 (UCB0STE)  |
+ *       CS|->Chip select->|P1.7 (UCA0STE)  |
  * --------|               |                |
  *                         |     (MCLK) P3.0|--> MCLK output
  *                         |----------------|
  *
  * This example uses the following peripherals and I/O signals:
  * - CS module (to set MCLK frequency to 24 MHz
- * - EUSCI_B0 module (SPI mode)
+ * - EUSCI_A0 module (SPI mode)
  * - GPIO Port module (for SPI pins)
- *   - UCB0STE
- *   - UCB0CLK
- *   - UCB0SIMO
- *   - UCB0SOMI
+ *   - UCA0STE
+ *   - UCA0CLK
+ *   - UCA0SIMO
+ *   - UCA0SOMI
  *   - MCLK
  *
  * This example uses the following interrupt handlers:
- * - USCI_B0_VECTOR
+ * - USCI_A0_VECTOR
  * - UNMI_VECTOR
  *
  */
@@ -48,12 +48,12 @@ void main(void) {
     WDT_A_hold(WDT_A_BASE); // Stop watchdog timer
 
     /*
-     * Configure pins for UCB0STE, UCB0CLK, UCB0SIMO and UCB0SOMI
-     * Set P1.0:3 to input with their primary function.
+     * Configure pins for UCA0STE, UCA0CLK, UCA0SIMO and UCA0SOMI
+     * Set P1.4:7 to input with their primary function.
      */
     GPIO_setAsPeripheralModuleFunctionInputPin(
         GPIO_PORT_P1,
-        GPIO_PIN0 + GPIO_PIN1 + GPIO_PIN2 + GPIO_PIN3,
+        GPIO_PIN4 + GPIO_PIN5 + GPIO_PIN6 + GPIO_PIN7,
         GPIO_PRIMARY_MODULE_FUNCTION
     );
 
@@ -84,23 +84,23 @@ void main(void) {
     CS_clearAllOscFlagsWithTimeout(1000); // Clear all OSC fault flags
 
     /*
-     * Initialize EUSCI_B0
+     * Initialize EUSCI_A0
      * SPI slave
      * MSB first
      * Active high clock polarity
      * 4 wire SPI
      * CS active low
      */
-    EUSCI_B_SPI_initSlaveParam spiparam = {0};
-    spiparam.msbFirst = EUSCI_B_SPI_MSB_FIRST;
-    spiparam.clockPhase = EUSCI_B_SPI_PHASE_DATA_CAPTURED_ONFIRST_CHANGED_ON_NEXT;
-    spiparam.clockPolarity = EUSCI_B_SPI_CLOCKPOLARITY_INACTIVITY_LOW;
-    spiparam.spiMode = EUSCI_B_SPI_4PIN_UCxSTE_ACTIVE_LOW;
-    EUSCI_B_SPI_initSlave(EUSCI_B0_BASE, &spiparam);
-    EUSCI_B_SPI_enable(EUSCI_B0_BASE); // Enable SPI module
+    EUSCI_A_SPI_initSlaveParam spiparam = {0};
+    spiparam.msbFirst = EUSCI_A_SPI_MSB_FIRST;
+    spiparam.clockPhase = EUSCI_A_SPI_PHASE_DATA_CAPTURED_ONFIRST_CHANGED_ON_NEXT;
+    spiparam.clockPolarity = EUSCI_A_SPI_CLOCKPOLARITY_INACTIVITY_LOW;
+    spiparam.spiMode = EUSCI_A_SPI_4PIN_UCxSTE_ACTIVE_LOW;
+    EUSCI_A_SPI_initSlave(EUSCI_A0_BASE, &spiparam);
+    EUSCI_A_SPI_enable(EUSCI_A0_BASE); // Enable SPI module
 
-    EUSCI_B_SPI_clearInterrupt(EUSCI_B0_BASE, EUSCI_B_SPI_RECEIVE_INTERRUPT);
-    EUSCI_B_SPI_enableInterrupt(EUSCI_B0_BASE, EUSCI_B_SPI_RECEIVE_INTERRUPT); // Enable RX interrupt
+    EUSCI_A_SPI_clearInterrupt(EUSCI_A0_BASE, EUSCI_A_SPI_RECEIVE_INTERRUPT);
+    EUSCI_A_SPI_enableInterrupt(EUSCI_A0_BASE, EUSCI_A_SPI_RECEIVE_INTERRUPT); // Enable RX interrupt
 
     SFR_enableInterrupt(SFR_OSCILLATOR_FAULT_INTERRUPT); // Enable oscillator fault interrupt
 
@@ -111,32 +111,32 @@ void main(void) {
 }
 
 //******************************************************************************
-// USCI_B0 interrupt vector service routine.
+// USCI_A0 interrupt vector service routine.
 //******************************************************************************
 #if defined(__TI_COMPILER_VERSION__) || defined(__IAR_SYSTEMS_ICC__)
-#pragma vector=USCI_B0_VECTOR
+#pragma vector=USCI_A0_VECTOR
 __interrupt
 #elif defined(__GNUC__)
-__attribute__((interrupt(USCI_B0_VECTOR)))
+__attribute__((interrupt(USCI_A0_VECTOR)))
 #endif
-void USCI_B0_ISR (void) {
-    switch(__even_in_range(UCB0IV, USCI_SPI_UCTXIFG)) {
+void USCI_A0_ISR (void) {
+    switch(__even_in_range(UCA0IV, USCI_SPI_UCTXIFG)) {
         case USCI_SPI_UCRXIFG: // UCRXIFG
             if(!executing) { // if not currently executing something, read in an instruction
-               instruction = EUSCI_B_SPI_receiveData(EUSCI_B0_BASE);
+               instruction = EUSCI_A_SPI_receiveData(EUSCI_A0_BASE);
                i = 0;
                executing = 1;
                if(instruction == 0x01) { // write data back to master
                    i = 0;
-                   EUSCI_B_SPI_disableInterrupt(EUSCI_B0_BASE, EUSCI_B_SPI_RECEIVE_INTERRUPT); // disable RX interrupt
-                   EUSCI_B_SPI_clearInterrupt(EUSCI_B0_BASE, EUSCI_B_SPI_TRANSMIT_INTERRUPT);
-                   EUSCI_B_SPI_enableInterrupt(EUSCI_B0_BASE, EUSCI_B_SPI_TRANSMIT_INTERRUPT); // enable TX interrupt
+                   EUSCI_A_SPI_disableInterrupt(EUSCI_A0_BASE, EUSCI_A_SPI_RECEIVE_INTERRUPT); // disable RX interrupt
+                   EUSCI_A_SPI_clearInterrupt(EUSCI_A0_BASE, EUSCI_A_SPI_TRANSMIT_INTERRUPT);
+                   EUSCI_A_SPI_enableInterrupt(EUSCI_A0_BASE, EUSCI_A_SPI_TRANSMIT_INTERRUPT); // enable TX interrupt
                    // place first byte in transmit buffer, need to load it during this instruction or else the transmission will be late by 1 byte
-                   EUSCI_B_SPI_transmitData(EUSCI_B0_BASE, receiveData[i++]);
+                   EUSCI_A_SPI_transmitData(EUSCI_A0_BASE, receiveData[i++]);
                }
             }
             else if(instruction == 0x00) { // read bytes from master
-                receiveData[i++] = EUSCI_B_SPI_receiveData(EUSCI_B0_BASE);
+                receiveData[i++] = EUSCI_A_SPI_receiveData(EUSCI_A0_BASE);
                 if(i >= DATA_SIZE) {
                     i = 0;
                     executing = 0;
@@ -146,7 +146,7 @@ void USCI_B0_ISR (void) {
             break;
         case USCI_SPI_UCTXIFG: // UCTXIFG
             if(i <= DATA_SIZE - 1) {
-                EUSCI_B_SPI_transmitData(EUSCI_B0_BASE, receiveData[i++]);
+                EUSCI_A_SPI_transmitData(EUSCI_A0_BASE, receiveData[i++]);
             }
             else if(i == DATA_SIZE) {
             	i++;
@@ -155,9 +155,9 @@ void USCI_B0_ISR (void) {
                 i = 0;
                 executing = 0;
                 instruction = 0;
-                EUSCI_B_SPI_disableInterrupt(EUSCI_B0_BASE, EUSCI_B_SPI_TRANSMIT_INTERRUPT); // disable TX interrupt
-                EUSCI_B_SPI_clearInterrupt(EUSCI_B0_BASE, EUSCI_B_SPI_RECEIVE_INTERRUPT);
-                EUSCI_B_SPI_enableInterrupt(EUSCI_B0_BASE, EUSCI_B_SPI_RECEIVE_INTERRUPT); // enable RX interrupt
+                EUSCI_A_SPI_disableInterrupt(EUSCI_A0_BASE, EUSCI_A_SPI_TRANSMIT_INTERRUPT); // disable TX interrupt
+                EUSCI_A_SPI_clearInterrupt(EUSCI_A0_BASE, EUSCI_A_SPI_RECEIVE_INTERRUPT);
+                EUSCI_A_SPI_enableInterrupt(EUSCI_A0_BASE, EUSCI_A_SPI_RECEIVE_INTERRUPT); // enable RX interrupt
             }
         default:
             break;
