@@ -13,9 +13,25 @@
 #include <msp430.h> 
 #include <stdint.h>
 
+#define DAC_CS BIT0 // Define DAC chip select pin as BIT0 (P1.0)
+
+//Define DAC Commands
+#define Com_Write2InRegN            0x00
+#define Com_UpdateDacReg            0x01
+#define Com_Write2InRegN_SW_LDAC    0x02
+#define Com_WriteUpdateDacRegN      0x03
+#define Com_PowerDownDac            0x04
+#define Com_ResetDac                0x05
+#define Com_LDAC_SetReg             0x06
+#define Com_DAC_intRef              0x07
+
+//Define DAC Address
+#define DAC_A_addr                  0x00
+#define DAC_B_addr                  0x01
+#define DAC_All_addr                0x07
 
 // void SPI_DAC_INIT(); 
-// void SPI_transmit(); 
+void SPI_transmit();
 
 int main(void)
 {
@@ -46,10 +62,26 @@ int main(void)
 	int i;
 
 	while(1){
-		UCB0TXBUF = 0xB2;
+		SPI_transmit(Com_WriteUpdateDacRegN, DAC_All_addr, 0x0085);
 		__delay_cycles(1000); 
 	}
 	return 0;
+}
+
+void SPI_transmit(uint16_t command, uint16_t address, uint16_t data) {
+    // Format the data frame
+    uint32_t data_frame = 0;
+    data_frame |= ((command & 0x07) << 18) | ((address & 0x07) << 15) | ((data & 0xFF) << 4);
+
+    // Transmit the data frame
+    P1OUT &= ~DAC_CS;     // Select the DAC
+    UCB0TXBUF = (data_frame >> 16) & 0xFF; // Send MSB first
+    while (!(UCB0IFG & UCTXIFG)); // Wait for TX buffer to be ready
+    UCB0TXBUF = (data_frame >> 8) & 0xFF;
+    while (!(UCB0IFG & UCTXIFG)); // Wait for TX buffer to be ready
+    UCB0TXBUF = data_frame & 0xFF;
+    while (!(UCB0IFG & UCTXIFG)); // Wait for TX buffer to be ready
+    P1OUT |= DAC_CS; // Deselect the DAC
 }
 
 // #pragma vector = USCI_B0_VECTOR
