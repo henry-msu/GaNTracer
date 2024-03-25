@@ -23,15 +23,9 @@
 //----------------------------------------------------------------------------/
 
 //----- Global Variable Declarations------------------------------------------/
-char dataframe[];
-unsigned int i, j;
+char SPI_Frame[] = {0x00, 0x00, 0x00};
+unsigned int position, i, j;
 
-typedef struct{
-	uint8_t SPI1; 
-	uint8_t	SPI2; 
-	uint8_t SPI3; 
-} FrameParts;
-FrameParts SPI_Frames;
 //------------------------------------------------------------------------------/
 
 //----- Function Declarations --------------------------------------------------/
@@ -47,12 +41,7 @@ int main(void)
 
     //Initialize SPI 3 Wire
 		SPI_Init(); 
-
-	//Initialize Frame Parts Structure
-		SPI_Frames.SPI1 = 0x00; 
-		SPI_Frames.SPI2 = 0x00; 
-		SPI_Frames.SPI3 = 0x00; 
-
+		
 	//DCSweep Ilim - Enable PWM controller
         P3DIR |= BIT7;
         P3OUT |= BIT7;
@@ -105,45 +94,27 @@ void DAC_SetTx(uint8_t command, uint8_t address,  uint16_t data){
 	//---------------------------------------------------------------------------
 
 	//Compile the command, address, and data  into a single variable.
-		uint32_t dc_mask = 0b00 << 23 | 0b0000 << 0;
+		uint32_t dc_mask = 0b11 << 23 | 0b1111 << 0;
 		uint32_t TXData = (command << 21) | (address << 18) | (data & 0b111111111111) << 3 | dc_mask;
 		
 	// Extract the 3, 2-byte items from the TXData variable
-		SPI_Frames.SPI1 = (TXData >> 16) & 0xFFFF;
-		SPI_Frames.SPI2 = (TXData >> 8) & 0xFF;
-		SPI_Frames.SPI3 = TXData & 0xFF;
+		SPI_Frame[0] = (TXData >> 16) & 0xFFFF;
+		SPI_Frame[1] = (TXData >> 8) & 0xFF;
+		SPI_Frame[2] = TXData & 0xFF;
 }
 
 void Send2DAC(void){
-    // Pointer to the beginning of the SPI_Frames structure
-    uint8_t *ptr = (uint8_t *)&SPI_Frames;
-    
-    // Iterate through each byte of the structure
-    for (i = 0; i < sizeof(SPI_Frames); i++){
-        // Send the current byte through SPI
-        UCB0TXBUF = *(ptr + i);
-        
-        // Wait for transmission to complete
-        while (!(UCB0IFG & UCTXIFG));
-    }
+    position = 0;
+    UCB0TXBUF = SPI_Frame[position];
 }
 
-// #pragma vector = PORT4_VECTOR
-// __interrupt void ISR_PORT4_S1(void){
-// //	P1OUT &= ~BIT0;
-// //	position = 0;
-// //	UCB0TXBUF = [position];
-// 	P4IFG &= ~BIT1; 
-// }
-
-
-// #pragma vector = USCI_B0_VECTOR
-// __interrupt void USCI_B0_ISR(void){
-// //	position++;
-// //	if (position < sizeof(dataframe)){
-// //		UCB0TXBUF = packet[position];
-// //	}
-// //	else{
-// 		UCB0IFG &= ~UCTXIFG; 
-// //	}
-// }
+#pragma vector = USCI_B0_VECTOR
+__interrupt void USCI_B0_ISR(void){
+	position++;
+	if (position < sizeof(SPI_Frame)){
+		UCB0TXBUF = SPI_Frame[position];
+	}
+	else{ 
+ 		UCB0IFG &= ~UCTXIFG; 
+	}
+}
