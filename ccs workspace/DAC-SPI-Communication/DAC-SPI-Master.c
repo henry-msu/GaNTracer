@@ -14,16 +14,10 @@
 #include <stdint.h>
 
 //----- Macro Definitions ------------------------------------------------------------------------/
-#define W2InRegN 		0b000
-#define updateDACRegN 	0b001
-
-#define AddrDacA		0b000
-#define AddrDacB		0b001
-#define AddrDacAll 		0b111
-
 #define Wr2_DAC_A		0b000000
 #define Wr2_DAC_B		0b000001
 #define Wr2_DAC_ALL		0b000111
+
 //------------------------------------------------------------------------------------------------/
 
 //----- Global Variable Declarations--------------------------------------------------------------/
@@ -35,6 +29,7 @@ void SPI_Init();
 void DAC_SetTx(uint8_t, uint16_t);
 void Send2DAC(); 
 void UpdateDAC(); 
+void ClearDAC(); 
 
 
 //----- MAIN PROGRAM -----------------------------------------------------------------------------/
@@ -117,6 +112,8 @@ void DAC_SetTx(uint8_t commandAddr,  uint16_t data){
 
 //Send first byte to DAC over SPI - ISR handles other 2 bytes
 void Send2DAC(void){
+	P3OUT |= BIT6;                           // Set clr  pin high to enable DAC registers
+
     position = 0; 
 	UCB0TXBUF = SPI_Frame[position];
 }
@@ -126,6 +123,11 @@ void UpdateDAC(void){
 	P3OUT &= ~BIT5;                        // Set LDAC low -> updates DACregister
 	delay(30);
 	P3OUT |= BIT5;                          // Set LDAC high -> finish
+}
+
+//Set CLR - P3.6 Low to write zero scale to all input and DAC registers
+void ClearDAC(void){
+	P3OUT &= ~BIT6;                            //CLR is set low
 }
 
 //delay somewhat tuned so that the parameter is the number of ms you want to delay
