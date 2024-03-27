@@ -15,7 +15,7 @@
 
 //----- Macro Definitions ----------------------------------------------------/
 #define W2InRegN 		0b000
-#define updateDACRegN 	0b000
+#define updateDACRegN 	0b001
 
 #define AddrDacA		0b000
 #define AddrDacB		0b001
@@ -23,8 +23,8 @@
 //----------------------------------------------------------------------------/
 
 //----- Global Variable Declarations------------------------------------------/
-char SPI_Frame[] = {0x00, 0x00, 0x00};
-unsigned int position, i, j;
+volatile uint8_t SPI_Frame[] = {0x00, 0x00, 0x00};
+volatile int position, i, j;
 
 //------------------------------------------------------------------------------/
 
@@ -41,13 +41,14 @@ int main(void)
 
     //Initialize SPI 3 Wire
 		SPI_Init(); 
+		__enable_interrupt(); 
 		
 	//DCSweep Ilim - Enable PWM controller
         P3DIR |= BIT7;
         P3OUT |= BIT7;
 
 	while(1){
-		DAC_SetTx(W2InRegN, AddrDacA, 0b00110101); 
+		DAC_SetTx(W2InRegN, AddrDacAll, 0b001101011111);
 		Send2DAC();
 		for(j=0; j<1000; j++){}
 	}
@@ -67,11 +68,6 @@ void SPI_Init(void){
 		UCB0CTLW0 |= UCSTEM; 
 
     // Configure GPIOs for SPI mode
-        P4DIR &= ~BIT1;
-        P4REN |= BIT1;
-        P4OUT |= BIT1;
-        P4IES |= BIT1;
-
         P1SEL0 |= BIT0;
         P1SEL1 &= ~BIT0;
 
@@ -79,11 +75,15 @@ void SPI_Init(void){
         P1SEL1 &= ~BIT1;
 
         P1SEL0 |= BIT2;
-        P1SEL1 &= ~BIT2;
+        P1SEL1 &= ~BIT2;	
 
         PM5CTL0 &= ~LOCKLPM5;				 //Unlock LPM5
 
         UCB0CTLW0 &= ~UCSWRST;              // Release eUSCI_B0 for operation
+
+		//IRQ enable
+		UCB0IFG &= ~UCTXIFG;
+		UCB0IE |= UCTXIE; 
 }
 
 void DAC_SetTx(uint8_t command, uint8_t address,  uint16_t data){
@@ -94,18 +94,18 @@ void DAC_SetTx(uint8_t command, uint8_t address,  uint16_t data){
 	//---------------------------------------------------------------------------
 
 	//Compile the command, address, and data  into a single variable.
-		uint32_t dc_mask = 0b11 << 23 | 0b1111 << 0;
-		uint32_t TXData = (command << 21) | (address << 18) | (data & 0b111111111111) << 3 | dc_mask;
+		// uint32_t dc_mask = 0b11 << 22 | 0b1111 << 0;
+		uint32_t TXData = ((command & 0x07) << 19) | ((address & 0x07) << 16) | ((data & 0xFFF) << 4);
 		
 	// Extract the 3, 2-byte items from the TXData variable
-		SPI_Frame[0] = (TXData >> 16) & 0xFFFF;
+		SPI_Frame[0] = (TXData >> 16) & 0xFF;
 		SPI_Frame[1] = (TXData >> 8) & 0xFF;
 		SPI_Frame[2] = TXData & 0xFF;
 }
 
 void Send2DAC(void){
-    position = 0;
-    UCB0TXBUF = SPI_Frame[position];
+    position = 0; 
+	UCB0TXBUF = SPI_Frame[position];
 }
 
 #pragma vector = USCI_B0_VECTOR
