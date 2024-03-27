@@ -1,2 +1,6 @@
 # python venvs are not supposed to be in vcs
 .venv
+
+# remove unneccessary ccs project files
+Debug
+.settings
