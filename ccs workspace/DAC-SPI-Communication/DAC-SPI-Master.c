@@ -34,7 +34,7 @@ volatile int position, i, j;
 
 //----- Function Declarations --------------------------------------------------/
 void SPI_Init(); 
-void DAC_SetTx(uint8_t, uint8_t, uint16_t);
+void DAC_SetTx(uint8_t, uint16_t);
 void Send2DAC(); 
 void UpdateDAC(); 
 
@@ -61,10 +61,10 @@ int main(void)
 		P3OUT |= BIT6; 			//P3.6 - CLR
 
 	while(1){
-		DAC_SetTx(W2InRegN, AddrDacAll, 0b001101011111);
+		DAC_SetTx(Wr2_DAC_ALL, 0b001101011111);
 		Send2DAC();
 		UpdateDAC(); 
-		for(j=0; j<1000; j++){}
+		// for(j=0; j<1000; j++){}
 	}
 
 	return 0;
@@ -100,20 +100,20 @@ void SPI_Init(void){
 		UCB0IE |= UCTXIE; 
 }
 
-void DAC_SetTx(uint8_t command, uint8_t address,  uint16_t data){
+void DAC_SetTx(uint8_t commandAddr,  uint16_t data){
 	//---Data Frame:-------------------------------------------------------------
 	//| 23 | 22 | 21 | 20 | 19 | 18 | 17 | 16 | 15 | 14 | 13 | 12 | 11 | 10 | 09 | 08 | 07 | 06 | 05 | 04 | 03 | 02 | 01 | 01
 	//----------------------------------------------------------------
 	//| -  | -  | C2 | C1 | C0 | A2 | A1 | A0 | D11| D10| D9 | D8 | D7 | D6 | D5 | D4 | D3 | D2 | D1 | D0 | -  | -  | -  | -  |
 	//---------------------------------------------------------------------------
 
-	//Compile the command, address, and data  into a single variable.
+	//Place 4 don't cares after 12 bit data  to make it a valid 16bit word
 		uint16_t TXData =  ((data & 0xFFF) << 4);
 		
 	// Extract the 3, 2-byte items from the TXData variable
-		SPI_Frame[0] = Wr2_DAC_ALL;
-		SPI_Frame[1] = (TXData >> 8) & 0xFF;
-		SPI_Frame[2] = TXData & 0xFF;
+		SPI_Frame[0] = commandAddr;
+		SPI_Frame[1] = (TXData >> 8) & 0xFF;						//Send Upper Byte
+		SPI_Frame[2] = TXData & 0xFF;								//Send Lower Byte
 }
 
 void Send2DAC(void){
