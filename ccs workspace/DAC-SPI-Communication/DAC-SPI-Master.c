@@ -20,6 +20,10 @@
 #define AddrDacA		0b000
 #define AddrDacB		0b001
 #define AddrDacAll 		0b111
+
+#define Wr2_DAC_A		0b000000
+#define Wr2_DAC_B		0b000001
+#define Wr2_DAC_ALL		0b000111
 //----------------------------------------------------------------------------/
 
 //----- Global Variable Declarations------------------------------------------/
@@ -32,6 +36,8 @@ volatile int position, i, j;
 void SPI_Init(); 
 void DAC_SetTx(uint8_t, uint8_t, uint16_t);
 void Send2DAC(); 
+void UpdateDAC(); 
+
 //------------------------------------------------------------------------------/
 
 /* MAIN PROGRAM */
@@ -47,9 +53,17 @@ int main(void)
         P3DIR |= BIT7;
         P3OUT |= BIT7;
 
+	//DAC additional Pin initialization
+		P3DIR |= BIT5;			//P3.5 - LDAC
+		P3OUT |= BIT5; 
+
+		P3DIR |= BIT6;
+		P3OUT |= BIT6; 			//P3.6 - CLR
+
 	while(1){
 		DAC_SetTx(W2InRegN, AddrDacAll, 0b001101011111);
 		Send2DAC();
+		UpdateDAC(); 
 		for(j=0; j<1000; j++){}
 	}
 
@@ -94,11 +108,10 @@ void DAC_SetTx(uint8_t command, uint8_t address,  uint16_t data){
 	//---------------------------------------------------------------------------
 
 	//Compile the command, address, and data  into a single variable.
-		// uint32_t dc_mask = 0b11 << 22 | 0b1111 << 0;
-		uint32_t TXData = ((command & 0x07) << 19) | ((address & 0x07) << 16) | ((data & 0xFFF) << 4);
+		uint16_t TXData =  ((data & 0xFFF) << 4);
 		
 	// Extract the 3, 2-byte items from the TXData variable
-		SPI_Frame[0] = (TXData >> 16) & 0xFF;
+		SPI_Frame[0] = Wr2_DAC_ALL;
 		SPI_Frame[1] = (TXData >> 8) & 0xFF;
 		SPI_Frame[2] = TXData & 0xFF;
 }
@@ -106,6 +119,19 @@ void DAC_SetTx(uint8_t command, uint8_t address,  uint16_t data){
 void Send2DAC(void){
     position = 0; 
 	UCB0TXBUF = SPI_Frame[position];
+}
+
+void UpdateDAC(void){
+	P3OUT &= ~BIT5;                        // Set LDAC low -> updates DACregister
+	delay(30);
+	P3OUT |= BIT5;                          // Set LDAC high -> finish
+}
+
+void delay(unsigned int ms){
+    unsigned int i;
+    for (i = 0; i < ms; i++){
+        __delay_cycles(1000); // Assuming 1MHz clock
+    }
 }
 
 #pragma vector = USCI_B0_VECTOR
