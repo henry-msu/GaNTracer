@@ -13,14 +13,11 @@
 #define TEMPSENSOR_ADDRESS 0x4A // slave address of TEMPSENSOR
 #define TEMPSENSOR_I2C EUSCI_B1_BASE // base address of eusci module being used for TEMPSENSOR
 
-uint16_t EUSCI_B1_TXCNT = 0;
 uint8_t* EUSCI_B1_TXDATA;
-
-uint16_t EUSCI_B1_RXCNT = 0;
 uint8_t* EUSCI_B1_RXDATA;
 
-void I2CMTXBytes(uint16_t dev, uint16_t* txcnt_ptr, uint8_t** data_ptr, uint8_t* data, uint16_t n);
-void I2CMRXBytes(uint16_t dev, uint16_t* rxcnt_ptr, uint8_t** data_ptr, uint8_t* data, uint16_t n);
+void I2CMTXBytes(uint16_t dev, uint8_t** data_ptr, uint8_t* data, uint16_t n);
+void I2CMRXBytes(uint16_t dev, uint8_t** data_ptr, uint8_t* data, uint16_t n);
 
 void init(void);
 
@@ -30,18 +27,18 @@ void init(void);
 //   data_ptr: address of transmit data for chosen module, used in ISR
 //   data: array of data to send
 //   n: number of bytes to send
-void I2CMTXBytes(uint16_t dev, uint16_t* txcnt_ptr, uint8_t** data_ptr, uint8_t* data, uint16_t n) {
-    *txcnt_ptr = n - 1; // Fill proper txcnt register
+void I2CMTXBytes(uint16_t dev, uint8_t** data_ptr, uint8_t* data, uint16_t n) {
     *data_ptr = data;
     while (EUSCI_B_I2C_SENDING_STOP == EUSCI_B_I2C_masterIsStopSent(dev));
+    HWREG16(dev + OFS_UCBxTBCNT) = n; // datasheet says to not modify this while module is active, but whatever
     ROM_EUSCI_B_I2C_masterSendMultiByteStart(dev, *(*data_ptr)++); // begin sending data, ISR takes care of the rest
     __bis_SR_register(CPUOFF + GIE); // enter LPM0 and wait
 }
 
-void I2CMRXBytes(uint16_t dev, uint16_t* rxcnt_ptr, uint8_t** data_ptr, uint8_t* data, uint16_t n) {
-    *rxcnt_ptr = n; // Fill proper rxcnt register.
+void I2CMRXBytes(uint16_t dev, uint8_t** data_ptr, uint8_t* data, uint16_t n) {
     *data_ptr = data;
     while (EUSCI_B_I2C_SENDING_STOP == EUSCI_B_I2C_masterIsStopSent(dev));
+    HWREG16(dev + OFS_UCBxTBCNT) = n; // datasheet says to not modify this while module is active, but whatever
     EUSCI_B_I2C_masterReceiveStart(dev); // begin receiving data, ISR takes care of the rest
     __bis_SR_register(CPUOFF + GIE); // enter LPM0 and wait
     HWREG16(dev + OFS_UCBxCTLW0) &= ~UCTXSTP; // gross workaround, for some reason MSP is not automatically clearing UCTXSTP like it should
@@ -98,8 +95,8 @@ void init(void) {
         .selectClockSource = EUSCI_B_I2C_CLOCKSOURCE_SMCLK,
         .i2cClk = CS_getSMCLK(),
         .dataRate = EUSCI_B_I2C_SET_DATA_RATE_400KBPS,
-        .byteCounterThreshold = 0,
-        .autoSTOPGeneration = EUSCI_B_I2C_NO_AUTO_STOP
+        .byteCounterThreshold = 2,
+        .autoSTOPGeneration = EUSCI_B_I2C_SEND_STOP_AUTOMATICALLY_ON_BYTECOUNT_THRESHOLD
     };
     EUSCI_B_I2C_initMaster(TEMPSENSOR_I2C, &I2Cparam);
 
@@ -109,12 +106,14 @@ void init(void) {
 
     EUSCI_B_I2C_clearInterrupt(TEMPSENSOR_I2C,
         EUSCI_B_I2C_TRANSMIT_INTERRUPT0 +
-        EUSCI_B_I2C_RECEIVE_INTERRUPT0
+        EUSCI_B_I2C_RECEIVE_INTERRUPT0 +
+		EUSCI_B_I2C_BYTE_COUNTER_INTERRUPT
     );
 
     EUSCI_B_I2C_enableInterrupt(TEMPSENSOR_I2C,
         EUSCI_B_I2C_TRANSMIT_INTERRUPT0 +
-        EUSCI_B_I2C_RECEIVE_INTERRUPT0
+        EUSCI_B_I2C_RECEIVE_INTERRUPT0 +
+		EUSCI_B_I2C_BYTE_COUNTER_INTERRUPT
     );
 
      // Set up UART on eUSCI_A0
@@ -163,16 +162,18 @@ void main (void) {
     uint8_t tempArr[4] = {0};
 
     // Reset temperature sensor
-    I2CMTXBytes(TEMPSENSOR_I2C, &EUSCI_B1_TXCNT, &EUSCI_B1_TXDATA, resetCMD, 2);
-
+    I2CMTXBytes(TEMPSENSOR_I2C, &EUSCI_B1_TXDATA, resetCMD, 2);
 
     while(1) {
-        __delay_cycles(1000000);
-        I2CMTXBytes(TEMPSENSOR_I2C, &EUSCI_B1_TXCNT, &EUSCI_B1_TXDATA, OSCS_CMD, 2);
-        // read temperature and ignore checksum for now
-        I2CMRXBytes(TEMPSENSOR_I2C, &EUSCI_B1_RXCNT, &EUSCI_B1_RXDATA, RXdata, RXnum);
+        __delay_cycles(10000);
+        I2CMTXBytes(TEMPSENSOR_I2C, &EUSCI_B1_TXDATA, OSCS_CMD, 2);
+        // read temperature and ignore checksum
+        I2CMRXBytes(TEMPSENSOR_I2C, &EUSCI_B1_RXDATA, RXdata, RXnum);
 
         if(RXdata[1] == 0) {
+        	__no_operation();
+        }
+        if(RXdata[0] == 0) {
         	__no_operation();
         }
 
@@ -181,6 +182,7 @@ void main (void) {
         tempArr[2] = '\r';
         tempArr[3] = '\n';
         UARTtxBytes(tempArr, 4);
+
         __no_operation();
     }
 }
@@ -215,31 +217,14 @@ void USCIB1_ISR(void) {
             break;
 
         case USCI_I2C_UCTXIFG0: // TXIFG0
-            // Check TX byte counter
-            if (EUSCI_B1_TXCNT) {
-                EUSCI_B_I2C_masterSendMultiByteNext(EUSCI_B1_BASE, *EUSCI_B1_TXDATA++);
-                // Decrement TX byte counter
-                EUSCI_B1_TXCNT--;
-            }
-            else {
-                EUSCI_B_I2C_masterSendMultiByteStop(EUSCI_B1_BASE);
-                __bic_SR_register_on_exit(CPUOFF); // Exit LPM0
-            }
+            EUSCI_B_I2C_masterSendMultiByteNext(EUSCI_B1_BASE, *EUSCI_B1_TXDATA++);
             break;
 
         case USCI_I2C_UCRXIFG0: // RXIFG0, somehting in here is currently broken
-        	if (EUSCI_B1_RXCNT > 2) { // Not really sure why this needs to be n-2...
-        		*EUSCI_B1_RXDATA++ = EUSCI_B_I2C_masterReceiveSingle(EUSCI_B1_BASE);
-        		EUSCI_B1_RXCNT--;
-        	}
-        	else {
-        		//Send stop condition
-        		HWREG16(EUSCI_B1_BASE + OFS_UCBxCTLW0) |= UCTXSTP;
-        	    *EUSCI_B1_RXDATA++ = (HWREG16(EUSCI_B1_BASE + OFS_UCBxRXBUF));
-
-        		__no_operation();
-        		__bic_SR_register_on_exit(CPUOFF); // Exit LPM0, the rest is taken care of in function
-        	}
+      		*EUSCI_B1_RXDATA++ = EUSCI_B_I2C_masterReceiveSingle(EUSCI_B1_BASE);
+            break;
+        case USCI_I2C_UCBCNTIFG:
+            __bic_SR_register_on_exit(CPUOFF); // Exit LPM0
             break;
         default:
             break;
