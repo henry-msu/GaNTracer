@@ -13,7 +13,7 @@
 #include <msp430.h> 
 #include <stdint.h>
 
-//----- Macro Definitions ----------------------------------------------------/
+//----- Macro Definitions ------------------------------------------------------------------------/
 #define W2InRegN 		0b000
 #define updateDACRegN 	0b001
 
@@ -24,23 +24,20 @@
 #define Wr2_DAC_A		0b000000
 #define Wr2_DAC_B		0b000001
 #define Wr2_DAC_ALL		0b000111
-//----------------------------------------------------------------------------/
+//------------------------------------------------------------------------------------------------/
 
-//----- Global Variable Declarations------------------------------------------/
+//----- Global Variable Declarations--------------------------------------------------------------/
 volatile uint8_t SPI_Frame[] = {0x00, 0x00, 0x00};
 volatile int position, i, j;
 
-//------------------------------------------------------------------------------/
-
-//----- Function Declarations --------------------------------------------------/
+//----- Function Declarations --------------------------------------------------------------------/
 void SPI_Init(); 
 void DAC_SetTx(uint8_t, uint16_t);
 void Send2DAC(); 
 void UpdateDAC(); 
 
-//------------------------------------------------------------------------------/
 
-/* MAIN PROGRAM */
+//----- MAIN PROGRAM -----------------------------------------------------------------------------/
 int main(void)
 {
 	WDTCTL = WDTPW | WDTHOLD;	// stop watchdog timer
@@ -70,6 +67,7 @@ int main(void)
 	return 0;
 }
 
+//----- Function Definitions ---------------------------------------------------------------------/
 //SPI-Initialize the SPI module for communication with the DAC
 void SPI_Init(void){
 
@@ -100,6 +98,7 @@ void SPI_Init(void){
 		UCB0IE |= UCTXIE; 
 }
 
+//Configure the necessary data frames for SPI transmission
 void DAC_SetTx(uint8_t commandAddr,  uint16_t data){
 	//---Data Frame:-------------------------------------------------------------
 	//| 23 | 22 | 21 | 20 | 19 | 18 | 17 | 16 | 15 | 14 | 13 | 12 | 11 | 10 | 09 | 08 | 07 | 06 | 05 | 04 | 03 | 02 | 01 | 01
@@ -116,17 +115,20 @@ void DAC_SetTx(uint8_t commandAddr,  uint16_t data){
 		SPI_Frame[2] = TXData & 0xFF;								//Send Lower Byte
 }
 
+//Send first byte to DAC over SPI - ISR handles other 2 bytes
 void Send2DAC(void){
     position = 0; 
 	UCB0TXBUF = SPI_Frame[position];
 }
 
+//Update DAC registers by setting LDAC low and allowing registers to take value of input registers
 void UpdateDAC(void){
 	P3OUT &= ~BIT5;                        // Set LDAC low -> updates DACregister
 	delay(30);
 	P3OUT |= BIT5;                          // Set LDAC high -> finish
 }
 
+//delay somewhat tuned so that the parameter is the number of ms you want to delay
 void delay(unsigned int ms){
     unsigned int i;
     for (i = 0; i < ms; i++){
@@ -134,6 +136,7 @@ void delay(unsigned int ms){
     }
 }
 
+//----- Interrupt Service Routines ---------------------------------------------------------------/
 #pragma vector = USCI_B0_VECTOR
 __interrupt void USCI_B0_ISR(void){
 	position++;
