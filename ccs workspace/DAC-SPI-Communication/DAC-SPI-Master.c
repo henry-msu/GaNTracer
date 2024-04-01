@@ -17,6 +17,7 @@
 #define Wr2_DAC_A		0b00000000
 #define Wr2_DAC_B		0b00000001
 #define Up_DAC_A		0b00001000
+#define Up_DAC_B		0b00001001
 #define Wr2_DAC_ALL		0b00000111
 #define DAC_SW_RST		0b00101000
 #define LDAC_REG_Select	0b00110000
@@ -31,6 +32,7 @@
 //----- Global Variable Declarations--------------------------------------------------------------/
 volatile uint8_t SPI_Frame[] = {0x00, 0x00, 0x00};
 volatile int position, i, j;
+volatile int DataNow = 0b0000111111111111;
 
 //----- Function Declarations --------------------------------------------------------------------/
 void SPI_Init(); 
@@ -46,6 +48,14 @@ int main(void)
 
     //Initialize SPI 3 Wire
 		SPI_Init(); 
+
+//        P4DIR &= ~BIT1;
+//        P4REN |= BIT1;
+//        P4OUT |= BIT1;
+////        P4IES |= BIT1;
+//
+//        P4IE  |= BIT1;
+
 		__enable_interrupt(); 
 		
 	//DCSweep Ilim - Enable PWM controller
@@ -63,17 +73,10 @@ int main(void)
 		DAC_SetTx(DAC_SW_RST, 0b01);  	//Software reset of the DAC module
 		Send2DAC();
 		delay(1);
-		// ClearDAC;
+
+		DAC_SetTx(DAC_INT_REF, 0b00);  //Enable Internal Reference of DAC
+		Send2DAC();
 		delay(1);
-
-		// DAC_SetTx(DAC_SW_RST, 0b00);    //Software reset disable of the DAC module
-		// Send2DAC();
-		// delay(1);
-
-
-		// DAC_SetTx(DAC_INT_REF, 0b01);  		//Enable Internal Reference of DAC
-		// Send2DAC();
-		// delay(1);
 
 		DAC_SetTx(LDAC_REG_Select, 0b11);  	//Ignore LDAC functionality
 		Send2DAC();
@@ -86,14 +89,21 @@ int main(void)
 
 	while(1){
 
-		DAC_SetTx(Wr2_DAC_A, 0b111111111111);	//Write to all DAC channels
+		DAC_SetTx(Wr2_DAC_A, DataNow);	//Write to all DAC channels
 		Send2DAC();
 		delay(1);
 
-		DAC_SetTx(Up_DAC_A, 0b111111111111);
+		DAC_SetTx(Up_DAC_A, 0b00);
 		Send2DAC(); 
 
-		delay(1000);
+		DAC_SetTx(Wr2_DAC_B, DataNow);
+		Send2DAC(); 
+		delay(1);
+
+		DAC_SetTx(Up_DAC_B, 0b00);
+		Send2DAC(); 
+
+		delay(10);
 
 	}
 
@@ -151,7 +161,7 @@ void DAC_SetTx(uint8_t commandAddr,  uint16_t data){
 
 //Send first byte to DAC over SPI - ISR handles other 2 bytes
 void Send2DAC(void){
-	P3OUT |= BIT6;                           // Set clr  pin high to enable DAC registers
+	// P3OUT |= BIT6;                           // Set clr  pin high to enable DAC registers
 
     position = 0; 
 	UCB0TXBUF = SPI_Frame[position];
@@ -168,6 +178,12 @@ void delay(unsigned int ms){
 }
 
 //----- Interrupt Service Routines ---------------------------------------------------------------/
+//#pragma vector = PORT4_VECTOR
+//__interrupt void ISR_Port4_S1(void){
+//	DataNow += 100;
+//	P4IFG &= ~BIT1; 	//Clear interrupt
+//}
+
 //Iterate through each frame in SPI array, load into TXBUF, wait for TXBUF ready status
 #pragma vector = USCI_B0_VECTOR
 __interrupt void USCI_B0_ISR(void){
