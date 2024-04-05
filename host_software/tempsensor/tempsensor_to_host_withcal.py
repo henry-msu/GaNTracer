@@ -39,32 +39,39 @@ tic = 0;
 toc = 0;
 processingtime = 0; # how long the FT232H and MSP have spent doing things
 
+if len(sys.argv) == 3:
 # how many tests of x readings to do
-while(1):
-    try:
-        tests = int(input(f'Enter a number of tests to conduct: '))
-    except ValueError:
-        print("Enter an integer number of tests")
-        continue
-    else:
-        break
+    while(1):
+        try:
+            tests = int(input(f'Enter a number of tests to conduct: '))
+        except ValueError:
+            print("Enter an integer number of tests")
+            continue
+        else:
+            break
 
-# read how many readings from user
-while(1):
-    try:
-        readings = int(input(f'Enter a number of temperature readings to take per test (max {maxReadings}): '))
-    except ValueError:
-        print("Enter an integer number of readings")
-        continue
-    if readings > maxReadings:
-        print(f"You asked for too many readings, maximum is {maxReadings}")
-    else:
-        break
+    # read how many readings from user
+    while(1):
+        try:
+            readings = int(input(f'Enter a number of temperature readings to take per test (max {maxReadings}): '))
+        except ValueError:
+            print("Enter an integer number of readings")
+            continue
+        if readings > maxReadings:
+            print(f"You asked for too many readings, maximum is {maxReadings}")
+        else:
+            break
+elif len(sys.argv) == 5:
+    tests = int(sys.argv[3])
+    readings = int(sys.argv[4])
+else:
+    print("invalid number of arguments")
+    sys.exit(1)
 numBytes = 2*readings # each temperature reading takes 2 bytes
 
 spi = SpiController() # instantiate spi device
 spi.configure('ftdi://ftdi:232h/1') # use first FT232H enumerated (THIS WILL CHANGE SOON)
-slave = spi.get_port(cs=0, freq=1.5E6, mode=0) # Set up SPI master
+slave = spi.get_port(cs=0, freq=1E6, mode=0) # Set up SPI master
 gpio = spi.get_gpio() # get gpio port from FT232H
 
 with open(filename, mode='w', newline='') as csvfile:

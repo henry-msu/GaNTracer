@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Allows the user to set the offset calibration of the temperature sensor
+# Testing the calibrated sensor for accuracy
 
 # note about GPIOs:
 # The SPI module takes up the first 4 pins, so gpios start at ADBUS4.
@@ -18,6 +18,7 @@ import signal
 import sys
 import time
 import datetime
+import csv
 
 def main():
 
@@ -40,51 +41,43 @@ def main():
 
     maxReadings = 4096# depends on MSP firmware
     filename = sys.argv[1] # results output file
+    calValue = float(sys.argv[2]) # calibration value
     testsDone = 0 # how many tests have been completed
-    offsetCals = [] # place to store all the offset values
 
-    # how many rounds of calibration to do
+    # how many rounds of tests to do
     while(1):
         try:
-            tests = int(input(f'Enter how many rounds of calibration to conduct: '))
+            tests = int(input(f'Enter how many rounds of accuracy testing to conduct: '))
         except ValueError:
             print("Enter an integer number of tests")
             continue
         else:
             break
-    # read how many readings from user
-    while(1):
-        try:
-            readings = int(input(f'Enter a number of temperature readings to take per test (max {maxReadings}): '))
-        except ValueError:
-            print("Enter an integer number of readings")
-            continue
-        if readings > maxReadings:
-            print(f"You asked for too many readings, maximum is {maxReadings}")
-        else:
-            break
+
+    readings = 1; # only 1 reading per test
     numBytes = 2*readings # each temperature reading takes 2 bytes
 
 
-    with open(filename, mode='w', newline='') as resultsfile:
+    with open(filename, mode='w', newline='') as csvfile:
 
-        # set up calibration data file
-        resultsfile.write(f"Temp sensor calibration for {datetime.datetime.now()}\n")
+        # set up csv file
+        csvwriter = csv.writer(csvfile)
+        headers = ["rawData", "unCaltempC", "unCaltempF", "calTempC", "calTempF", "actualTempC", "tempErrorC"]
+        csvwriter.writerow(headers)
 
         while(testsDone < tests):
-            print(f"Conducting test {testsDone + 1}")
+            print(f"\nConducting test {testsDone + 1}")
 
             # get actual temperature from user
             while(1):
                 try:
-                    actualtemp = float(input(f'Enter the current temperature in celcius: '))
+                    actualTempC = float(input(f'Enter the current temperature in celcius: '))
                 except ValueError:
                     print("Enter the current temperature in degrees celcius")
                     continue
                 else:
                     break
 
-            print("Recording temperature from test device...")
             # tell MSP to make temperature readings
             triggerCollectionCMD = [0x0A, numBytes >> 8, numBytes & 0xFF]
             #print("\ntriggerCollectionCMD: " + ', '.join(['0x{:02X}'.format(i) for i in triggerCollectionCMD]) + '\n')
@@ -97,51 +90,39 @@ def main():
             # Once MSP is finished, read out it's data
             temperatureRaw = list(slave.read(numBytes));
 
+            tempNum = 0
             # Convert 8 bit data read into 16 bit numbers representing the temperature
-            temperatureNums = [];
             for i in range(0, len(temperatureRaw) - 1, 2):
                 tempNum = temperatureRaw[i] << 8
                 i += 1
                 tempNum += temperatureRaw[i]
-                temperatureNums.append(tempNum)
 
             # convert temperature numbers into actual temperatures using formula
             # from STS3x-DIS datasheet
-            tempsC = [];
-            tempsF = [];
-            for tempNum in temperatureNums:
-                tempsC.append(round(-45 + 175 * (tempNum/ ((2**16) - 1)), 2))
-                tempsF.append(round(-49 + 315 * (tempNum/ ((2**16) - 1)), 2))
+            tempC = round(-45 + 175 * (tempNum/ ((2**16) - 1)), 2)
+            tempF = round(-49 + 315 * (tempNum/ ((2**16) - 1)), 2)
 
-            # calculate the difference between the temperature read by the sensor and the actual provided by the user
-            tempDiffsC = [x - actualtemp for x in tempsC]
-            # average the difference to get the calibration
-            offsetCalsingle = round(mean(tempDiffsC),2)
-            offsetCals.append(offsetCalsingle)
+            # use calibration provided by user to calibrate temperature
+            calTempC = round(tempC - calValue, 2)
+            calTempF = round(calTempC * (9/5) + 32, 2)
+
+            # calculate the difference between the calibrated temperature read by the sensor and the actual provided by the user
+            tempErrorC = round(calTempC - actualTempC,2)
 
             # print results to screen
-            print(f"\nTemperature reported by user: {actualtemp}")
-            print("Measured temperatures in C: " + ', '.join(['{:.2f}'.format(i) for i in tempsC]))
-            print("Measured temperatures in F: " + ', '.join(['{:.2f}'.format(i) for i in tempsF]))
-            print(f"Average difference between measured and actual: {offsetCalsingle}")
+            print(f"Temperature reported by user: {actualTempC} °C")
+            print(f"Calibrated measured temperature: {calTempC} °C ({calTempF} °F)")
+            print(f"Difference between measured and actual: {tempErrorC} °C")
+
+            # print results to file
+            rows = [tempNum, tempC, tempF, calTempC, calTempF, actualTempC, tempErrorC] # convert each column to proper rows
+            csvwriter.writerow(rows)
 
             testsDone += 1
 
-        # calculate average offset, this is the value to use to calibrate the sensor
-        avgOffset = round(mean(offsetCals),2)
-        resultsfile.write(f'Tests conducted: {testsDone}\n')
-        resultsfile.write(f'Temperature readings per test: {readings}\n')
-        resultsfile.write(f"Average offset (calibration value): {avgOffset}\n")
-        resultsfile.close()
         spi.close()
 
-    print(f'\n--------------------------------')
-    print(f'            RESULTS')
-    print(f'--------------------------------')
-    print(f'Tests conducted:               {testsDone}')
-    print(f'Temperature readings per test: {readings}')
-    print(f'Average temperature offset:    {avgOffset} °C')
-    print(f'Calibration data written to "{filename}"')
+    print(f'Results recorded in "{filename}"')
 
 if __name__ == '__main__':
     main()
