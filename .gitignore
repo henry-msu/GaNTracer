@@ -4,3 +4,6 @@
 # remove unneccessary ccs project files
 Debug
 .settings
+
+# csv files from testing things
+*.csv
