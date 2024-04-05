@@ -471,7 +471,7 @@ uint8_t EUSCI_B_I2C_masterReceiveMultiByteFinish (uint16_t baseAddress)
     HWREG16(baseAddress + OFS_UCBxCTLW0) |= UCTXSTP;
 
     //Wait for Stop to finish
-    while (HWREG16(baseAddress + OFS_UCBxCTLW0) & UCTXSTP);
+    while (HWREG16(baseAddress + OFS_UCBxCTLW0) & UCTXSTP)
 
     // Wait for RX buffer
     while (!(HWREG16(baseAddress + OFS_UCBxIFG) & UCRXIFG));

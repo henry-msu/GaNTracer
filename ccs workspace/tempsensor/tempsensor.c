@@ -41,7 +41,7 @@ void I2CMRXBytes(uint16_t dev, uint8_t** data_ptr, uint8_t* data, uint16_t n) {
     HWREG16(dev + OFS_UCBxTBCNT) = n; // datasheet says to not modify this while module is active, but whatever
     EUSCI_B_I2C_masterReceiveStart(dev); // begin receiving data, ISR takes care of the rest
     __bis_SR_register(CPUOFF + GIE); // enter LPM0 and wait
-    HWREG16(dev + OFS_UCBxCTLW0) &= ~UCTXSTP; // gross workaround, for some reason MSP is not automatically clearing UCTXSTP like it should
+    //HWREG16(dev + OFS_UCBxCTLW0) &= ~UCTXSTP; // gross workaround, for some reason MSP is not automatically clearing UCTXSTP like it should
 }
 
 // These two functions kinda suck, but they seem to work for 115200 baud...

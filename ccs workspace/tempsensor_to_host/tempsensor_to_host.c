@@ -1,5 +1,5 @@
 /*
- * Reading from temperature sensor, filling up a buffer, and sending it back to host device via spi
+ * Reading from temperature sensor
  * Henry Naguski
 */
 #include <driverlib.h>
@@ -9,51 +9,120 @@
 
 #include "common.h"
 
-
 uint8_t* EUSCI_B1_TXDATA;
 uint8_t* EUSCI_B1_RXDATA;
 
-const uint8_t resetCMD[2] = {0x30, 0xA2};
-const uint8_t OSCS_CMD[2] = {0x2C, 0x06}; // oneshot reading with clock stretching enabled
-const uint8_t heaterOff[2] = {0x30, 0x66};
+#define tempDataSize 4096*2 // need two bytes for each temperature reading
+#pragma PERSISTENT(tempData)
+uint8_t tempData[tempDataSize] = {0};
+uint16_t tempDataInd = 0;
 
-#define tempDataSize 1024 // how big temperature array is
-uint16_t tempData[tempDataSize] = {0}; // Array to store temperature readings
-uint16_t tempInd = 0; // index for tempData
+uint8_t resetCMD[2] = {0x30, 0xA2};
+uint8_t OSCS_HIGH_CMD[2] = {0x2C, 0x06}; // oneshot reading with clock stretching enabled, high repeatability
+uint8_t OSCS_MED_CMD[2] = {0x2C, 0x0D}; // oneshot reading with clock stretching enabled, medium repeatability
+uint8_t OSCS_LOW_CMD[2] = {0x2C, 0x10}; // oneshot reading with clock stretching enabled, low repeatability
+
+uint8_t heaterOff[2] = {0x30, 0x66};
+
+uint16_t RXnum = 2; // how many bytes to receive
+uint8_t tempArr[4] = {0};
+
+// SPI variables
+uint8_t executing = 0; // whether or not we are doing something
+uint8_t instruction = 0; // what instruction to execute
+uint8_t tempReadNumCtr = 0; // for filling tempReadNum since it will be 2 bytes
+uint16_t tempReadNum = 0; // how many temperature measurements to make * 2 since each reading is 2 bytes
 
 void main (void) {
-    WDT_A_hold(WDT_A_BASE);
     init();
 
-    uint16_t RXnum = 2; // how many bytes to receive
     uint8_t* RXdata = malloc(RXnum * sizeof(uint8_t));
-    uint8_t tempArr[4] = {0}; // array to store temperature as a string
 
     // Reset temperature sensor
+    __delay_cycles(1000);
     I2CMTXBytes(TEMPSENSOR_I2C, &EUSCI_B1_TXDATA, resetCMD, 2);
+    I2CMTXBytes(TEMPSENSOR_I2C, &EUSCI_B1_TXDATA, heaterOff, 2);
 
     while(1) {
-        __delay_cycles(10000);
-        I2CMTXBytes(TEMPSENSOR_I2C, &EUSCI_B1_TXDATA, OSCS_CMD, 2);
-        // read temperature and ignore checksum (checksum is 3rd byte, only reading 2)
-        I2CMRXBytes(TEMPSENSOR_I2C, &EUSCI_B1_RXDATA, RXdata, RXnum);
-        __delay_cycles(10000);
+    	LPM0; // enter LPM0 and wait until we have to do something
 
-        // store data in array
-        if (tempInd >= tempDataSize) {
-        	tempInd = 0;
-        }
-        tempData[tempInd++] = (uint16_t) ((RXdata[0] << 8) + RXdata[1]);
+    	if(instruction == 0x0A) { // read temperature and notify host when finished
+    		tempDataInd = 0; // reset temperature data index
+    		while(tempDataInd < tempReadNum) {
+    			// Let temp sensor cool down a bit between each reading, this is lame
+    			__delay_cycles(1000);
+				// tell temp sensor to make a measurement
+				I2CMTXBytes(TEMPSENSOR_I2C, &EUSCI_B1_TXDATA, OSCS_HIGH_CMD, 2);
+				// read temperature result (ignore checksum)
+				I2CMRXBytes(TEMPSENSOR_I2C, &EUSCI_B1_RXDATA, RXdata, RXnum);
+				__delay_cycles(500); // TODO: fix this, issue is the function returns too early, caused by either I2CMRXBytes or the ISR (or both)
 
-        // send result over UART
-        tempArr[0] = RXdata[0];
-        tempArr[1] = RXdata[1];
-        tempArr[2] = '\r';
-        tempArr[3] = '\n';
-        UARTtxBytes(tempArr, 4);
+				tempData[tempDataInd++] = RXdata[0];
+				tempData[tempDataInd++] = RXdata[1];
 
-        __no_operation();
+    		}
+    		tempDataInd = 0;
+			EUSCI_A_SPI_clearInterrupt(EUSCI_A0_BASE, EUSCI_A_SPI_TRANSMIT_INTERRUPT);
+			EUSCI_A_SPI_enableInterrupt(EUSCI_A0_BASE, EUSCI_A_SPI_TRANSMIT_INTERRUPT);
+			__delay_cycles(5000000); // give a moment for sensor to cool down??? Without this the temperature creeps up slowly
+
+    		GPIO_setOutputHighOnPin(GPIO_PORT_P2, PIN_FINISHED_READING_TEMP); // notify host that we're done reading, this will immediately begin data reception
+			EUSCI_A_SPI_transmitData(EUSCI_A0_BASE, tempData[tempDataInd++]); // place first byte into txbuf
+    	}
     }
+}
+
+//******************************************************************************
+// USCI_A0 interrupt vector service routine.
+//******************************************************************************
+#if defined(__TI_COMPILER_VERSION__) || defined(__IAR_SYSTEMS_ICC__)
+#pragma vector=USCI_A0_VECTOR
+__interrupt
+#elif defined(__GNUC__)
+__attribute__((interrupt(USCI_A0_VECTOR)))
+#endif
+void USCI_A0_ISR (void) {
+	switch(__even_in_range(UCA0IV, USCI_SPI_UCTXIFG)) {
+		case USCI_SPI_UCRXIFG: // UCRXIFG
+
+			if(!executing) { // if not currently executing something, read in an instruction
+				instruction = EUSCI_A_SPI_receiveData(EUSCI_A0_BASE);
+				executing = 1; // now we're doing something
+			}
+
+			else if(instruction == 0x0A) { // trigger a measurement
+				// figure out how many bits to read
+				if (tempReadNumCtr++ == 0) {
+					tempReadNum = EUSCI_A_SPI_receiveData(EUSCI_A0_BASE) << 8;
+					break;
+				}
+				tempReadNum += EUSCI_A_SPI_receiveData(EUSCI_A0_BASE);
+				tempReadNumCtr = 0;
+				// disable receive interrupt while doing temperature readings, ignoring further commands
+				EUSCI_A_SPI_disableInterrupt(EUSCI_A0_BASE, EUSCI_A_SPI_RECEIVE_INTERRUPT);
+				LPM0_EXIT;
+			}
+			break;
+		case USCI_SPI_UCTXIFG: // UCTXIFG
+			if(instruction == 0x0A) {
+				EUSCI_A_SPI_transmitData(EUSCI_A0_BASE, tempData[tempDataInd++]);
+
+				if(tempDataInd > tempReadNum) {
+					// reset for next instruction
+					tempDataInd = 0;
+					tempReadNum = 0;
+					instruction = 0;
+					executing = 0;
+					GPIO_setOutputLowOnPin(GPIO_PORT_P2, PIN_FINISHED_READING_TEMP);
+					EUSCI_A_SPI_disableInterrupt(EUSCI_A0_BASE, EUSCI_A_SPI_TRANSMIT_INTERRUPT);
+					EUSCI_A_SPI_clearInterrupt(EUSCI_A0_BASE, EUSCI_A_SPI_RECEIVE_INTERRUPT);
+					EUSCI_A_SPI_enableInterrupt(EUSCI_A0_BASE, EUSCI_A_SPI_RECEIVE_INTERRUPT);
+				}
+			}
+			break;
+		default:
+			break;
+	}
 }
 
 //------------------------------------------------------------------------------
@@ -100,14 +169,19 @@ void USCIB1_ISR(void) {
     }
 }
 
-// EUSCI_A0_ISR: Exits low power for UART
-#pragma vector = EUSCI_A0_VECTOR
-__interrupt void EUSCI_A0_ISR(void) {
-    switch (__even_in_range(UCA0IV, UCIV__UCTXCPTIFG)) { // determine what interrupt was triggered
-    case UCIV__UCTXIFG:
-        LPM0_EXIT;
-        break;
-    default:
-        break;
-    }
-} // end EUSCI_A0_ISR
+//******************************************************************************
+// NMI vector service routine.
+//******************************************************************************
+#if defined(__TI_COMPILER_VERSION__) || defined(__IAR_SYSTEMS_ICC__)
+#pragma vector=UNMI_VECTOR
+__interrupt
+#elif defined(__GNUC__)
+__attribute__((interrupt(UNMI_VECTOR)))
+#endif
+void NMI_ISR(void) {
+  do {
+    // If it still can't clear the oscillator fault flags after the timeout,
+    // trap and wait here.
+    status = CS_clearAllOscFlagsWithTimeout(1000);
+  } while(status != 0);
+}
