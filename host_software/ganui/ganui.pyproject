@@ -1,0 +1,8 @@
+{
+    "files": [
+        "ganWidget.py",
+        "form.ui",
+        "QDoubleSlider.py",
+        "ganTester.py"
+    ]
+}
