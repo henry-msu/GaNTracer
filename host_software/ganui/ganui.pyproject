@@ -3,6 +3,7 @@
         "ganWidget.py",
         "form.ui",
         "QDoubleSlider.py",
-        "ganTester.py"
+        "ganTester.py",
+        "ganPlotter.py"
     ]
 }
