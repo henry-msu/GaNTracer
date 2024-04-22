@@ -1,8 +1,8 @@
 # This Python file uses the following encoding: utf-8
-import time, traceback, sys, pyqtgraph
+import time, traceback, sys, pyqtgraph, os, csv, itertools
 import numpy as np
 
-from PySide6.QtWidgets import QApplication, QWidget
+from PySide6.QtWidgets import QApplication, QWidget, QFileDialog
 from PySide6.QtCore import Signal, Slot, QTimer, QRunnable, QThreadPool, QObject
 from ganTester import ganTester
 import ganPlotter
@@ -128,6 +128,40 @@ class ganWidget(QWidget):
         print(f"displayed results at: {time.time_ns()} ns")
 
     @Slot(str)
+    def exportResults(self):
+        file = QFileDialog.getSaveFileName(self, filter=self.tr("Comma separated value (*.csv)"))
+        filename = os.path.splitext(file[0])
+        if filename[1] == '.csv':
+            filename = filename[0] + filename[1]
+        else:
+            filename = filename[0] + filename[1] + '.csv'
+
+        headers = ["temperature (C)"]
+
+        for i in self.tester.VgValues:
+            headers.append('Vd@Vg=' + str(i))
+            headers.append('Id@Vg=' + str(i))
+
+        with open(filename, mode='w', newline='') as csvfile:
+            csvwriter  = csv.writer(csvfile)
+            headers = ["temperature (C)"]
+
+            for i in self.tester.VgValues:
+                headers.append('Vd@Vg=' + str(i))
+                headers.append('Id@Vg=' + str(i))
+            print(headers)
+
+            csvwriter.writerow(headers)
+
+            output = [self.tester.tempsC]
+            for i in range(0, len(self.tester.VgValues)):
+                output.append(self.tester.VdsMeasured[i,:].tolist())
+                output.append(self.tester.IdMeasured[i,:].tolist())
+
+            rows = itertools.zip_longest(*output, fillvalue='')
+            csvwriter.writerows(rows)
+
+    @Slot(str)
     def beginTestClicked(self):
         button = self.sender() # the button that was pressed
 
@@ -162,6 +196,9 @@ class ganWidget(QWidget):
 
         # connect start test slot
         self.ui.beginTestButton.clicked.connect(self.beginTestClicked)
+
+        # connect export button
+        self.ui.exportButton.clicked.connect(self.exportResults)
 
         # connect slider slots
         self.ui.VdMinSlider.valueChanged.connect(self.VdSliderToDoubleSpinbox)

@@ -45,8 +45,8 @@ class ganTester:
         print("")
 
         # set up measurement values
-        self.VgValues = np.arange(self.VgMin, self.VgMax+(self.VgStep/4), self.VgStep) # generate list of Vgs values to test
-        self.VdValues = np.arange(self.VdMin, self.VdMax+(self.VdStep/4), self.VdStep) # generate list of Vds values to test
+        self.VgValues = np.round(np.arange(self.VgMin, self.VgMax+(self.VgStep/4), self.VgStep), 3) # generate list of Vgs values to test
+        self.VdValues = np.round(np.arange(self.VdMin, self.VdMax+(self.VdStep/4), self.VdStep), 3) # generate list of Vds values to test
         self.VdsMeasured = np.empty((0,len(self.VdValues)))
         self.IdMeasured = np.empty((0,len(self.VdValues)))
 
@@ -80,6 +80,6 @@ class ganTester:
 
         # actual measurement data would go here
         for i in range(0, len(self.VgValues)):
-            self.VdsMeasured = np.vstack((self.VdsMeasured, self.VdValues))
-            self.IdMeasured = np.vstack((self.IdMeasured, self.VdValues*(i+1)))
+            self.VdsMeasured = np.vstack((self.VdsMeasured, np.round(self.VdValues, 3)))
+            self.IdMeasured = np.vstack((self.IdMeasured, np.round(self.VgValues[i]+self.VdValues*(i+1), 3)))
 

@@ -172,6 +172,30 @@ class Ui_ganWidget(object):
 
         self.configFormLayout.setLayout(4, QFormLayout.FieldRole, self.VgMaxHLayout)
 
+        self.VgStepLabel = QLabel(self.formLayoutWidget)
+        self.VgStepLabel.setObjectName(u"VgStepLabel")
+
+        self.configFormLayout.setWidget(5, QFormLayout.LabelRole, self.VgStepLabel)
+
+        self.VgStepHLayout = QHBoxLayout()
+        self.VgStepHLayout.setObjectName(u"VgStepHLayout")
+        self.VgStepSpinbox = QDoubleSpinBox(self.formLayoutWidget)
+        self.VgStepSpinbox.setObjectName(u"VgStepSpinbox")
+        self.VgStepSpinbox.setMinimum(0.250000000000000)
+        self.VgStepSpinbox.setMaximum(3.000000000000000)
+        self.VgStepSpinbox.setSingleStep(0.250000000000000)
+
+        self.VgStepHLayout.addWidget(self.VgStepSpinbox)
+
+        self.VgStepSlider = QSlider(self.formLayoutWidget)
+        self.VgStepSlider.setObjectName(u"VgStepSlider")
+        self.VgStepSlider.setOrientation(Qt.Horizontal)
+
+        self.VgStepHLayout.addWidget(self.VgStepSlider)
+
+
+        self.configFormLayout.setLayout(5, QFormLayout.FieldRole, self.VgStepHLayout)
+
         self.tempReadsLabel = QLabel(self.formLayoutWidget)
         self.tempReadsLabel.setObjectName(u"tempReadsLabel")
 
@@ -229,31 +253,12 @@ class Ui_ganWidget(object):
         self.beginTestButton = QPushButton(self.formLayoutWidget)
         self.beginTestButton.setObjectName(u"beginTestButton")
 
-        self.configFormLayout.setWidget(9, QFormLayout.SpanningRole, self.beginTestButton)
+        self.configFormLayout.setWidget(11, QFormLayout.SpanningRole, self.beginTestButton)
 
-        self.VgStepLabel = QLabel(self.formLayoutWidget)
-        self.VgStepLabel.setObjectName(u"VgStepLabel")
+        self.exportButton = QPushButton(self.formLayoutWidget)
+        self.exportButton.setObjectName(u"exportButton")
 
-        self.configFormLayout.setWidget(5, QFormLayout.LabelRole, self.VgStepLabel)
-
-        self.VgStepHLayout = QHBoxLayout()
-        self.VgStepHLayout.setObjectName(u"VgStepHLayout")
-        self.VgStepSpinbox = QDoubleSpinBox(self.formLayoutWidget)
-        self.VgStepSpinbox.setObjectName(u"VgStepSpinbox")
-        self.VgStepSpinbox.setMinimum(0.250000000000000)
-        self.VgStepSpinbox.setMaximum(3.000000000000000)
-        self.VgStepSpinbox.setSingleStep(0.250000000000000)
-
-        self.VgStepHLayout.addWidget(self.VgStepSpinbox)
-
-        self.VgStepSlider = QSlider(self.formLayoutWidget)
-        self.VgStepSlider.setObjectName(u"VgStepSlider")
-        self.VgStepSlider.setOrientation(Qt.Horizontal)
-
-        self.VgStepHLayout.addWidget(self.VgStepSlider)
-
-
-        self.configFormLayout.setLayout(5, QFormLayout.FieldRole, self.VgStepHLayout)
+        self.configFormLayout.setWidget(12, QFormLayout.SpanningRole, self.exportButton)
 
         self.splitter.addWidget(self.formLayoutWidget)
         self.tabWidget = QTabWidget(self.splitter)
@@ -310,12 +315,13 @@ class Ui_ganWidget(object):
         self.VgMinSpinbox.setSuffix(QCoreApplication.translate("ganWidget", u" V", None))
         self.VgMaxLabel.setText(QCoreApplication.translate("ganWidget", u"<html><head/><body><p>V<span style=\" vertical-align:sub;\">G</span> max</p></body></html>", None))
         self.VgMaxSpinbox.setSuffix(QCoreApplication.translate("ganWidget", u" V", None))
+        self.VgStepLabel.setText(QCoreApplication.translate("ganWidget", u"Vg step", None))
+        self.VgStepSpinbox.setSuffix(QCoreApplication.translate("ganWidget", u" V", None))
         self.tempReadsLabel.setText(QCoreApplication.translate("ganWidget", u"Temp reads", None))
         self.tempOffsetLabel.setText(QCoreApplication.translate("ganWidget", u"Temp offset", None))
         self.tempOffsetDoubleSpinBox.setSuffix(QCoreApplication.translate("ganWidget", u" \u00b0C", None))
         self.beginTestButton.setText(QCoreApplication.translate("ganWidget", u"Begin test", None))
-        self.VgStepLabel.setText(QCoreApplication.translate("ganWidget", u"Vg step", None))
-        self.VgStepSpinbox.setSuffix(QCoreApplication.translate("ganWidget", u" V", None))
+        self.exportButton.setText(QCoreApplication.translate("ganWidget", u"Export results", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tempTab), QCoreApplication.translate("ganWidget", u"Temperature results", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.ivTab), QCoreApplication.translate("ganWidget", u"I-V curve", None))
     # retranslateUi
