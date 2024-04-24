@@ -115,6 +115,7 @@ class ganWidget(QWidget):
     # Update the UI with the results of the test
     @Slot(str)
     def testComplete(self):
+        self.ui.exportButton.setEnabled(True) # enable export button after first test
         self.ui.beginTestButton.setEnabled(True)
         self.ui.beginTestButton.setText("Begin test")
         self.ui.tempPlot.clear()
@@ -130,6 +131,10 @@ class ganWidget(QWidget):
     @Slot(str)
     def exportResults(self):
         file = QFileDialog.getSaveFileName(self, filter=self.tr("Comma separated value (*.csv)"))
+
+        if not all(file): # if no file was chosen, don't do anything
+            return
+
         filename = os.path.splitext(file[0])
         if filename[1] == '.csv':
             filename = filename[0] + filename[1]
@@ -149,7 +154,6 @@ class ganWidget(QWidget):
             for i in self.tester.VgValues:
                 headers.append('Vd@Vg=' + str(i))
                 headers.append('Id@Vg=' + str(i))
-            print(headers)
 
             csvwriter.writerow(headers)
 

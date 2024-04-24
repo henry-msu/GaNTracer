@@ -257,6 +257,7 @@ class Ui_ganWidget(object):
 
         self.exportButton = QPushButton(self.formLayoutWidget)
         self.exportButton.setObjectName(u"exportButton")
+        self.exportButton.setEnabled(False)
 
         self.configFormLayout.setWidget(12, QFormLayout.SpanningRole, self.exportButton)
 
