@@ -1,0 +1,8 @@
+{
+    "files": [
+        "GaNTracer.py",
+        "form.ui",
+        "ganTester.py",
+        "ganPlotter.py"
+    ]
+}

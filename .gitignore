@@ -1,5 +1,10 @@
 # python venvs are not supposed to be in vcs
 .venv
+venv
+
+# pyinstaller files
+host_software/ganui/dist
+host_software/ganui/build
 
 # remove unneccessary ccs project files
 Debug
