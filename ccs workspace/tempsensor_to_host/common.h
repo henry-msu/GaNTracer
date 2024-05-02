@@ -22,14 +22,18 @@ uint16_t status; // status of Oscillator fault flags
 
 #define PIN_FINISHED_READING_TEMP GPIO_PIN0 // pin used to signal finished reading a batch of temperature
 
+#define TB0_1MS 11 // ~11 TB0 ticks per 1ms, relies on clock source being 32768 kHz
+
 void I2CMTXBytes(uint16_t dev, uint8_t** data_ptr, uint8_t* data, uint16_t n);
 void I2CMRXBytes(uint16_t dev, uint8_t** data_ptr, uint8_t* data, uint16_t n);
 void UARTtxByte(uint8_t data);
 void UARTtxBytes(uint8_t* data, uint32_t n);
+void delayms(uint16_t ms);
 void initSPI(void);
 void initUART(void);
 void initI2C(void);
 void initCS(void);
+void initTB0(void);
 void init(void);
 
 #endif /* COMMON_H_ */

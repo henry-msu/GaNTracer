@@ -49,8 +49,7 @@ void main (void) {
     	if(instruction == 0x0A) { // read temperature and notify host when finished
     		tempDataInd = 0; // reset temperature data index
     		while(tempDataInd < tempReadNum) {
-    			// Let temp sensor cool down a bit between each reading, this is lame
-    			__delay_cycles(1000);
+    			delayms(1); // Let temp sensor cool down a bit between each reading, this is lame
 				// tell temp sensor to make a measurement
 				I2CMTXBytes(TEMPSENSOR_I2C, &EUSCI_B1_TXDATA, OSCS_HIGH_CMD, 2);
 				// read temperature result (ignore checksum)
@@ -64,7 +63,7 @@ void main (void) {
     		tempDataInd = 0;
 			EUSCI_A_SPI_clearInterrupt(EUSCI_A0_BASE, EUSCI_A_SPI_TRANSMIT_INTERRUPT);
 			EUSCI_A_SPI_enableInterrupt(EUSCI_A0_BASE, EUSCI_A_SPI_TRANSMIT_INTERRUPT);
-			__delay_cycles(5000000); // give a moment for sensor to cool down??? Without this the temperature creeps up slowly
+			//delayms(500); // give a moment for sensor to cool down??? Without this the temperature creeps up slowly
 
     		GPIO_setOutputHighOnPin(GPIO_PORT_P2, PIN_FINISHED_READING_TEMP); // notify host that we're done reading, this will immediately begin data reception
 			EUSCI_A_SPI_transmitData(EUSCI_A0_BASE, tempData[tempDataInd++]); // place first byte into txbuf
@@ -169,9 +168,20 @@ void USCIB1_ISR(void) {
     }
 }
 
-//******************************************************************************
+//------------------------------------------------------------------------------
+// TB0 CCR0 Interrupt: to stop delayms
+//------------------------------------------------------------------------------
+#pragma vector = TIMER0_B0_VECTOR
+__interrupt void TB0_CCR0(void){
+    LPM0_EXIT;
+    TB0CTL &= ~(MC__UPDOWN); // stop timer
+    TB0CTL |= TBCLR;
+    TB0CCTL0 &= ~(CCIE + CCIFG);
+}
+
+//------------------------------------------------------------------------------
 // NMI vector service routine.
-//******************************************************************************
+//------------------------------------------------------------------------------
 #if defined(__TI_COMPILER_VERSION__) || defined(__IAR_SYSTEMS_ICC__)
 #pragma vector=UNMI_VECTOR
 __interrupt

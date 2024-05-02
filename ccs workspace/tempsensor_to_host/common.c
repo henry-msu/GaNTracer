@@ -170,7 +170,7 @@ void initCS(void) {
     //Set DCO FLL reference = REFO
     CS_initClockSignal(CS_FLLREF, CS_REFOCLK_SELECT, CS_CLOCK_DIVIDER_1);
     //Set ACLK = REFO
-    CS_initClockSignal(CS_ACLK, CS_REFOCLK_SELECT, CS_CLOCK_DIVIDER_1);
+    //CS_initClockSignal(CS_ACLK, CS_REFOCLK_SELECT, CS_CLOCK_DIVIDER_1);
 
     CS_initFLLParam csparam = {0}; // Create struct variable to store proper software trim values
     // Set Ratio/Desired MCLK Frequency, initialize DCO, save trim values
@@ -179,12 +179,31 @@ void initCS(void) {
     SFR_enableInterrupt(SFR_OSCILLATOR_FAULT_INTERRUPT); // Enable oscillator fault interrupt
 }
 
+void LCDinittimer() {
+    // TB0: used for delay
+    // ACLK (32768 Hz), divide by 3, every 11 ticks is ~1.007 ms
+    TB0CTL |= TBCLR;    // clear/reset timer
+    TB0CTL |= TBSSEL__ACLK;
+    TB0EX0 = TBIDEX__3;
+    TB0CCTL0 &= ~CCIFG; // clear IFG
+}
+
+void delayms(uint16_t ms) {
+    TB0CCR0 = ms*TB0_1MS;
+    TB0CCTL0 |= CCIE; // enable CCR0 interrupt
+    TB0CTL |= MC__UP; // begin counting up
+    do {
+        LPM0;
+    } while (TB0CCTL0 & CCIFG);
+}
+
 void init(void) {
     WDT_A_hold(WDT_A_BASE); // disable watchdog timer
 
 	initCS();
 	initI2C();
 //	initUART(); UART conflicts with SPI
+	LCDinittimer();
 	initSPI();
 	initGPIO();
     /*
