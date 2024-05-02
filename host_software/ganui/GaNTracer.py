@@ -11,7 +11,7 @@ import ganPlotter
 # You need to run the following command to generate the ui_form.py file
 #     pyside6-uic form.ui -o ui_form.py, or
 #     pyside2-uic form.ui -o ui_form.py
-from ui_form import Ui_ganWidget
+from ui_form import Ui_GaNTracer
 
 class WorkerSignals(QObject):
     '''
@@ -80,8 +80,7 @@ class Worker(QRunnable):
         finally:
             self.signals.finished.emit()  # Done
 
-class ganWidget(QWidget):
-
+class GaNTracer(QWidget):
 
     # Vd can range from 0 to 5V, in 0.05V increments. This gives 101 different
     # possible values for the slider. This slot converts each slider position to
@@ -118,10 +117,14 @@ class ganWidget(QWidget):
         self.ui.exportButton.setEnabled(True) # enable export button after first test
         self.ui.beginTestButton.setEnabled(True)
         self.ui.beginTestButton.setText("Begin test")
+
+        # plot temperature
         self.ui.tempPlot.clear()
         self.ui.tempPlot.plot(self.tester.tempsC, pen={'color': 'blue', 'width': 2})
+
+        # plot I-V
         self.ui.ivPlot.clear()
-        self.ui.ivPlot.addLegend(pen={'color': 'black'}, labelTextColor='black')
+        self.ui.ivPlot.addLegend(pen={'color': 'black'}, labelTextColor='black', labelTextSize='20pt')
         for i in range(0, len(self.tester.VgValues)):
             name = "Vg = " + str(self.tester.VgValues[i])
             color = ganPlotter.colormap[i]
@@ -189,7 +192,7 @@ class ganWidget(QWidget):
     def __init__(self, parent=None):
 
         super().__init__(parent)
-        self.ui = Ui_ganWidget()
+        self.ui = Ui_GaNTracer()
         self.ui.setupUi(self)
 
         self.threadpool = QThreadPool()
@@ -203,9 +206,6 @@ class ganWidget(QWidget):
 
         # connect export button
         self.ui.exportButton.clicked.connect(self.exportResults)
-
-        # connect slider slots
-        self.ui.VdMinSlider.valueChanged.connect(self.VdSliderToDoubleSpinbox)
 
         # connect spinbox validation signals/slots
         self.ui.VdMinSpinbox.editingFinished.connect(self.VdSpinBoxValidate)
@@ -234,11 +234,12 @@ class ganWidget(QWidget):
         self.ui.ivPlot.getPlotItem().getAxis('bottom').setPen(color="black")
         self.ui.ivPlot.getPlotItem().showGrid(x=True, y=True, alpha=0.2)
         self.ui.ivPlot.setTitle("I-V plot", color="black", size="20pt")
-        self.ui.ivPlot.setLabel("left", "I_D (A)", color="black", size="20pt")
-        self.ui.ivPlot.setLabel("bottom", "V_DS (V)", color="black", size="20pt")
+        labelStyle = {'color': 'black', 'font-size': '16pt'}
+        self.ui.ivPlot.setLabel("left", "I_D (A)", **labelStyle)
+        self.ui.ivPlot.setLabel("bottom", "V_DS (V)", **labelStyle)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    widget = ganWidget()
+    widget = GaNTracer()
     widget.show()
     sys.exit(app.exec())

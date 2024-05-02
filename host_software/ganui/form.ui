@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>ganWidget</class>
- <widget class="QWidget" name="ganWidget">
+ <class>GaNTracer</class>
+ <widget class="QWidget" name="GaNTracer">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -12,11 +12,11 @@
   </property>
   <property name="font">
    <font>
-    <pointsize>13</pointsize>
+    <pointsize>20</pointsize>
    </font>
   </property>
   <property name="windowTitle">
-   <string>ganwidget</string>
+   <string>GaNTracer</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
    <item row="0" column="0">
@@ -28,11 +28,6 @@
       <layout class="QFormLayout" name="configFormLayout">
        <item row="0" column="0">
         <widget class="QLabel" name="VdMinLabel">
-         <property name="font">
-          <font>
-           <pointsize>13</pointsize>
-          </font>
-         </property>
          <property name="text">
           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;V&lt;span style=&quot; vertical-align:sub;&quot;&gt;D&lt;/span&gt; min&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
          </property>
@@ -42,11 +37,6 @@
         <layout class="QHBoxLayout" name="VdMinHLayout">
          <item>
           <widget class="QDoubleSpinBox" name="VdMinSpinbox">
-           <property name="font">
-            <font>
-             <pointsize>13</pointsize>
-            </font>
-           </property>
            <property name="suffix">
             <string> V</string>
            </property>
@@ -58,25 +48,10 @@
            </property>
           </widget>
          </item>
-         <item>
-          <widget class="QDoubleSlider" name="VdMinSlider">
-           <property name="maximum">
-            <number>100</number>
-           </property>
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
-           </property>
-          </widget>
-         </item>
         </layout>
        </item>
        <item row="1" column="0">
         <widget class="QLabel" name="VdMaxLabel">
-         <property name="font">
-          <font>
-           <pointsize>13</pointsize>
-          </font>
-         </property>
          <property name="frameShape">
           <enum>QFrame::NoFrame</enum>
          </property>
@@ -101,11 +76,6 @@
         <layout class="QHBoxLayout" name="VdMaxHLayout">
          <item>
           <widget class="QDoubleSpinBox" name="VdMaxSpinbox">
-           <property name="font">
-            <font>
-             <pointsize>13</pointsize>
-            </font>
-           </property>
            <property name="suffix">
             <string> V</string>
            </property>
@@ -120,22 +90,10 @@
            </property>
           </widget>
          </item>
-         <item>
-          <widget class="QSlider" name="VdMaxSlider">
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
-           </property>
-          </widget>
-         </item>
         </layout>
        </item>
        <item row="2" column="0">
         <widget class="QLabel" name="VdStepLabel">
-         <property name="font">
-          <font>
-           <pointsize>13</pointsize>
-          </font>
-         </property>
          <property name="text">
           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;V&lt;span style=&quot; vertical-align:sub;&quot;&gt;D&lt;/span&gt; step&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
          </property>
@@ -145,11 +103,6 @@
         <layout class="QHBoxLayout" name="VdStepHLayout">
          <item>
           <widget class="QDoubleSpinBox" name="VdStepSpinbox">
-           <property name="font">
-            <font>
-             <pointsize>13</pointsize>
-            </font>
-           </property>
            <property name="suffix">
             <string> V</string>
            </property>
@@ -164,13 +117,6 @@
            </property>
            <property name="singleStep">
             <double>0.001000000000000</double>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QSlider" name="VdStepSlider">
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
            </property>
           </widget>
          </item>
@@ -195,13 +141,6 @@
            </property>
            <property name="singleStep">
             <double>0.250000000000000</double>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QSlider" name="VgMinSlider">
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
            </property>
           </widget>
          </item>
@@ -232,13 +171,6 @@
            </property>
           </widget>
          </item>
-         <item>
-          <widget class="QSlider" name="VgMaxSlider">
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
-           </property>
-          </widget>
-         </item>
         </layout>
        </item>
        <item row="5" column="0">
@@ -266,13 +198,6 @@
            </property>
           </widget>
          </item>
-         <item>
-          <widget class="QSlider" name="VgStepSlider">
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
-           </property>
-          </widget>
-         </item>
         </layout>
        </item>
        <item row="6" column="0">
@@ -291,19 +216,6 @@
            </property>
            <property name="maximum">
             <number>4096</number>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QSlider" name="tempReadsSlider">
-           <property name="minimum">
-            <number>1</number>
-           </property>
-           <property name="maximum">
-            <number>4096</number>
-           </property>
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
            </property>
           </widget>
          </item>
@@ -328,19 +240,6 @@
            </property>
            <property name="maximum">
             <double>50.000000000000000</double>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QSlider" name="tempOffsetSlider">
-           <property name="minimum">
-            <number>-50</number>
-           </property>
-           <property name="maximum">
-            <number>50</number>
-           </property>
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
            </property>
           </widget>
          </item>
@@ -386,7 +285,7 @@
        </sizepolicy>
       </property>
       <property name="currentIndex">
-       <number>1</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="tempTab">
        <attribute name="title">
@@ -415,11 +314,6 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>QDoubleSlider</class>
-   <extends>QSlider</extends>
-   <header>QDoubleSlider</header>
-  </customwidget>
-  <customwidget>
    <class>PlotWidget</class>
    <extends>QWidget</extends>
    <header>pyqtgraph</header>
@@ -427,38 +321,5 @@
   </customwidget>
  </customwidgets>
  <resources/>
- <connections>
-  <connection>
-   <sender>tempReadsSpinbox</sender>
-   <signal>valueChanged(int)</signal>
-   <receiver>tempReadsSlider</receiver>
-   <slot>setValue(int)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>160</x>
-     <y>160</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>238</x>
-     <y>144</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>tempReadsSlider</sender>
-   <signal>valueChanged(int)</signal>
-   <receiver>tempReadsSpinbox</receiver>
-   <slot>setValue(int)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>210</x>
-     <y>144</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>137</x>
-     <y>145</y>
-    </hint>
-   </hints>
-  </connection>
- </connections>
+ <connections/>
 </ui>

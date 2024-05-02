@@ -17,23 +17,22 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QPalette, QPixmap, QRadialGradient, QTransform)
 from PySide6.QtWidgets import (QApplication, QDoubleSpinBox, QFormLayout, QFrame,
     QGridLayout, QHBoxLayout, QLabel, QPushButton,
-    QSizePolicy, QSlider, QSpacerItem, QSpinBox,
-    QSplitter, QTabWidget, QWidget)
+    QSizePolicy, QSpacerItem, QSpinBox, QSplitter,
+    QTabWidget, QWidget)
 
-from QDoubleSlider import QDoubleSlider
 from pyqtgraph import PlotWidget
 
-class Ui_ganWidget(object):
-    def setupUi(self, ganWidget):
-        if not ganWidget.objectName():
-            ganWidget.setObjectName(u"ganWidget")
-        ganWidget.resize(1280, 720)
+class Ui_GaNTracer(object):
+    def setupUi(self, GaNTracer):
+        if not GaNTracer.objectName():
+            GaNTracer.setObjectName(u"GaNTracer")
+        GaNTracer.resize(1280, 720)
         font = QFont()
-        font.setPointSize(13)
-        ganWidget.setFont(font)
-        self.gridLayout = QGridLayout(ganWidget)
+        font.setPointSize(20)
+        GaNTracer.setFont(font)
+        self.gridLayout = QGridLayout(GaNTracer)
         self.gridLayout.setObjectName(u"gridLayout")
-        self.splitter = QSplitter(ganWidget)
+        self.splitter = QSplitter(GaNTracer)
         self.splitter.setObjectName(u"splitter")
         self.splitter.setOrientation(Qt.Horizontal)
         self.formLayoutWidget = QWidget(self.splitter)
@@ -43,7 +42,6 @@ class Ui_ganWidget(object):
         self.configFormLayout.setContentsMargins(0, 0, 0, 0)
         self.VdMinLabel = QLabel(self.formLayoutWidget)
         self.VdMinLabel.setObjectName(u"VdMinLabel")
-        self.VdMinLabel.setFont(font)
 
         self.configFormLayout.setWidget(0, QFormLayout.LabelRole, self.VdMinLabel)
 
@@ -51,25 +49,16 @@ class Ui_ganWidget(object):
         self.VdMinHLayout.setObjectName(u"VdMinHLayout")
         self.VdMinSpinbox = QDoubleSpinBox(self.formLayoutWidget)
         self.VdMinSpinbox.setObjectName(u"VdMinSpinbox")
-        self.VdMinSpinbox.setFont(font)
         self.VdMinSpinbox.setMaximum(5.000000000000000)
         self.VdMinSpinbox.setSingleStep(0.050000000000000)
 
         self.VdMinHLayout.addWidget(self.VdMinSpinbox)
-
-        self.VdMinSlider = QDoubleSlider(self.formLayoutWidget)
-        self.VdMinSlider.setObjectName(u"VdMinSlider")
-        self.VdMinSlider.setMaximum(100)
-        self.VdMinSlider.setOrientation(Qt.Horizontal)
-
-        self.VdMinHLayout.addWidget(self.VdMinSlider)
 
 
         self.configFormLayout.setLayout(0, QFormLayout.FieldRole, self.VdMinHLayout)
 
         self.VdMaxLabel = QLabel(self.formLayoutWidget)
         self.VdMaxLabel.setObjectName(u"VdMaxLabel")
-        self.VdMaxLabel.setFont(font)
         self.VdMaxLabel.setFrameShape(QFrame.NoFrame)
         self.VdMaxLabel.setLineWidth(1)
         self.VdMaxLabel.setScaledContents(False)
@@ -82,25 +71,17 @@ class Ui_ganWidget(object):
         self.VdMaxHLayout.setObjectName(u"VdMaxHLayout")
         self.VdMaxSpinbox = QDoubleSpinBox(self.formLayoutWidget)
         self.VdMaxSpinbox.setObjectName(u"VdMaxSpinbox")
-        self.VdMaxSpinbox.setFont(font)
         self.VdMaxSpinbox.setMaximum(5.000000000000000)
         self.VdMaxSpinbox.setSingleStep(0.050000000000000)
         self.VdMaxSpinbox.setValue(5.000000000000000)
 
         self.VdMaxHLayout.addWidget(self.VdMaxSpinbox)
 
-        self.VdMaxSlider = QSlider(self.formLayoutWidget)
-        self.VdMaxSlider.setObjectName(u"VdMaxSlider")
-        self.VdMaxSlider.setOrientation(Qt.Horizontal)
-
-        self.VdMaxHLayout.addWidget(self.VdMaxSlider)
-
 
         self.configFormLayout.setLayout(1, QFormLayout.FieldRole, self.VdMaxHLayout)
 
         self.VdStepLabel = QLabel(self.formLayoutWidget)
         self.VdStepLabel.setObjectName(u"VdStepLabel")
-        self.VdStepLabel.setFont(font)
 
         self.configFormLayout.setWidget(2, QFormLayout.LabelRole, self.VdStepLabel)
 
@@ -108,19 +89,12 @@ class Ui_ganWidget(object):
         self.VdStepHLayout.setObjectName(u"VdStepHLayout")
         self.VdStepSpinbox = QDoubleSpinBox(self.formLayoutWidget)
         self.VdStepSpinbox.setObjectName(u"VdStepSpinbox")
-        self.VdStepSpinbox.setFont(font)
         self.VdStepSpinbox.setDecimals(3)
         self.VdStepSpinbox.setMinimum(0.001000000000000)
         self.VdStepSpinbox.setMaximum(5.000000000000000)
         self.VdStepSpinbox.setSingleStep(0.001000000000000)
 
         self.VdStepHLayout.addWidget(self.VdStepSpinbox)
-
-        self.VdStepSlider = QSlider(self.formLayoutWidget)
-        self.VdStepSlider.setObjectName(u"VdStepSlider")
-        self.VdStepSlider.setOrientation(Qt.Horizontal)
-
-        self.VdStepHLayout.addWidget(self.VdStepSlider)
 
 
         self.configFormLayout.setLayout(2, QFormLayout.FieldRole, self.VdStepHLayout)
@@ -138,12 +112,6 @@ class Ui_ganWidget(object):
         self.VgMinSpinbox.setSingleStep(0.250000000000000)
 
         self.VgMinHLayout.addWidget(self.VgMinSpinbox)
-
-        self.VgMinSlider = QSlider(self.formLayoutWidget)
-        self.VgMinSlider.setObjectName(u"VgMinSlider")
-        self.VgMinSlider.setOrientation(Qt.Horizontal)
-
-        self.VgMinHLayout.addWidget(self.VgMinSlider)
 
 
         self.configFormLayout.setLayout(3, QFormLayout.FieldRole, self.VgMinHLayout)
@@ -163,12 +131,6 @@ class Ui_ganWidget(object):
 
         self.VgMaxHLayout.addWidget(self.VgMaxSpinbox)
 
-        self.VgMaxSlider = QSlider(self.formLayoutWidget)
-        self.VgMaxSlider.setObjectName(u"VgMaxSlider")
-        self.VgMaxSlider.setOrientation(Qt.Horizontal)
-
-        self.VgMaxHLayout.addWidget(self.VgMaxSlider)
-
 
         self.configFormLayout.setLayout(4, QFormLayout.FieldRole, self.VgMaxHLayout)
 
@@ -187,12 +149,6 @@ class Ui_ganWidget(object):
 
         self.VgStepHLayout.addWidget(self.VgStepSpinbox)
 
-        self.VgStepSlider = QSlider(self.formLayoutWidget)
-        self.VgStepSlider.setObjectName(u"VgStepSlider")
-        self.VgStepSlider.setOrientation(Qt.Horizontal)
-
-        self.VgStepHLayout.addWidget(self.VgStepSlider)
-
 
         self.configFormLayout.setLayout(5, QFormLayout.FieldRole, self.VgStepHLayout)
 
@@ -210,14 +166,6 @@ class Ui_ganWidget(object):
 
         self.tempReadsHLayout.addWidget(self.tempReadsSpinbox)
 
-        self.tempReadsSlider = QSlider(self.formLayoutWidget)
-        self.tempReadsSlider.setObjectName(u"tempReadsSlider")
-        self.tempReadsSlider.setMinimum(1)
-        self.tempReadsSlider.setMaximum(4096)
-        self.tempReadsSlider.setOrientation(Qt.Horizontal)
-
-        self.tempReadsHLayout.addWidget(self.tempReadsSlider)
-
 
         self.configFormLayout.setLayout(6, QFormLayout.FieldRole, self.tempReadsHLayout)
 
@@ -234,14 +182,6 @@ class Ui_ganWidget(object):
         self.tempOffsetDoubleSpinBox.setMaximum(50.000000000000000)
 
         self.tempOffsetHLayout.addWidget(self.tempOffsetDoubleSpinBox)
-
-        self.tempOffsetSlider = QSlider(self.formLayoutWidget)
-        self.tempOffsetSlider.setObjectName(u"tempOffsetSlider")
-        self.tempOffsetSlider.setMinimum(-50)
-        self.tempOffsetSlider.setMaximum(50)
-        self.tempOffsetSlider.setOrientation(Qt.Horizontal)
-
-        self.tempOffsetHLayout.addWidget(self.tempOffsetSlider)
 
 
         self.configFormLayout.setLayout(7, QFormLayout.FieldRole, self.tempOffsetHLayout)
@@ -294,36 +234,34 @@ class Ui_ganWidget(object):
         self.gridLayout.addWidget(self.splitter, 0, 0, 1, 1)
 
 
-        self.retranslateUi(ganWidget)
-        self.tempReadsSpinbox.valueChanged.connect(self.tempReadsSlider.setValue)
-        self.tempReadsSlider.valueChanged.connect(self.tempReadsSpinbox.setValue)
+        self.retranslateUi(GaNTracer)
 
         self.tabWidget.setCurrentIndex(1)
 
 
-        QMetaObject.connectSlotsByName(ganWidget)
+        QMetaObject.connectSlotsByName(GaNTracer)
     # setupUi
 
-    def retranslateUi(self, ganWidget):
-        ganWidget.setWindowTitle(QCoreApplication.translate("ganWidget", u"ganwidget", None))
-        self.VdMinLabel.setText(QCoreApplication.translate("ganWidget", u"<html><head/><body><p>V<span style=\" vertical-align:sub;\">D</span> min</p></body></html>", None))
-        self.VdMinSpinbox.setSuffix(QCoreApplication.translate("ganWidget", u" V", None))
-        self.VdMaxLabel.setText(QCoreApplication.translate("ganWidget", u"<html><head/><body><p>V<span style=\" vertical-align:sub;\">D</span> max</p></body></html>", None))
-        self.VdMaxSpinbox.setSuffix(QCoreApplication.translate("ganWidget", u" V", None))
-        self.VdStepLabel.setText(QCoreApplication.translate("ganWidget", u"<html><head/><body><p>V<span style=\" vertical-align:sub;\">D</span> step</p></body></html>", None))
-        self.VdStepSpinbox.setSuffix(QCoreApplication.translate("ganWidget", u" V", None))
-        self.VgMinLabel.setText(QCoreApplication.translate("ganWidget", u"<html><head/><body><p>V<span style=\" vertical-align:sub;\">G</span> min</p></body></html>", None))
-        self.VgMinSpinbox.setSuffix(QCoreApplication.translate("ganWidget", u" V", None))
-        self.VgMaxLabel.setText(QCoreApplication.translate("ganWidget", u"<html><head/><body><p>V<span style=\" vertical-align:sub;\">G</span> max</p></body></html>", None))
-        self.VgMaxSpinbox.setSuffix(QCoreApplication.translate("ganWidget", u" V", None))
-        self.VgStepLabel.setText(QCoreApplication.translate("ganWidget", u"Vg step", None))
-        self.VgStepSpinbox.setSuffix(QCoreApplication.translate("ganWidget", u" V", None))
-        self.tempReadsLabel.setText(QCoreApplication.translate("ganWidget", u"Temp reads", None))
-        self.tempOffsetLabel.setText(QCoreApplication.translate("ganWidget", u"Temp offset", None))
-        self.tempOffsetDoubleSpinBox.setSuffix(QCoreApplication.translate("ganWidget", u" \u00b0C", None))
-        self.beginTestButton.setText(QCoreApplication.translate("ganWidget", u"Begin test", None))
-        self.exportButton.setText(QCoreApplication.translate("ganWidget", u"Export results", None))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tempTab), QCoreApplication.translate("ganWidget", u"Temperature results", None))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.ivTab), QCoreApplication.translate("ganWidget", u"I-V curve", None))
+    def retranslateUi(self, GaNTracer):
+        GaNTracer.setWindowTitle(QCoreApplication.translate("GaNTracer", u"GaNTracer", None))
+        self.VdMinLabel.setText(QCoreApplication.translate("GaNTracer", u"<html><head/><body><p>V<span style=\" vertical-align:sub;\">D</span> min</p></body></html>", None))
+        self.VdMinSpinbox.setSuffix(QCoreApplication.translate("GaNTracer", u" V", None))
+        self.VdMaxLabel.setText(QCoreApplication.translate("GaNTracer", u"<html><head/><body><p>V<span style=\" vertical-align:sub;\">D</span> max</p></body></html>", None))
+        self.VdMaxSpinbox.setSuffix(QCoreApplication.translate("GaNTracer", u" V", None))
+        self.VdStepLabel.setText(QCoreApplication.translate("GaNTracer", u"<html><head/><body><p>V<span style=\" vertical-align:sub;\">D</span> step</p></body></html>", None))
+        self.VdStepSpinbox.setSuffix(QCoreApplication.translate("GaNTracer", u" V", None))
+        self.VgMinLabel.setText(QCoreApplication.translate("GaNTracer", u"<html><head/><body><p>V<span style=\" vertical-align:sub;\">G</span> min</p></body></html>", None))
+        self.VgMinSpinbox.setSuffix(QCoreApplication.translate("GaNTracer", u" V", None))
+        self.VgMaxLabel.setText(QCoreApplication.translate("GaNTracer", u"<html><head/><body><p>V<span style=\" vertical-align:sub;\">G</span> max</p></body></html>", None))
+        self.VgMaxSpinbox.setSuffix(QCoreApplication.translate("GaNTracer", u" V", None))
+        self.VgStepLabel.setText(QCoreApplication.translate("GaNTracer", u"Vg step", None))
+        self.VgStepSpinbox.setSuffix(QCoreApplication.translate("GaNTracer", u" V", None))
+        self.tempReadsLabel.setText(QCoreApplication.translate("GaNTracer", u"Temp reads", None))
+        self.tempOffsetLabel.setText(QCoreApplication.translate("GaNTracer", u"Temp offset", None))
+        self.tempOffsetDoubleSpinBox.setSuffix(QCoreApplication.translate("GaNTracer", u" \u00b0C", None))
+        self.beginTestButton.setText(QCoreApplication.translate("GaNTracer", u"Begin test", None))
+        self.exportButton.setText(QCoreApplication.translate("GaNTracer", u"Export results", None))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tempTab), QCoreApplication.translate("GaNTracer", u"Temperature results", None))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.ivTab), QCoreApplication.translate("GaNTracer", u"I-V curve", None))
     # retranslateUi
 
