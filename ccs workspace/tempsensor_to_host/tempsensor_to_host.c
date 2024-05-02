@@ -49,8 +49,7 @@ void main (void) {
     	if(instruction == 0x0A) { // read temperature and notify host when finished
     		tempDataInd = 0; // reset temperature data index
     		while(tempDataInd < tempReadNum) {
-    			// Let temp sensor cool down a bit between each reading, this is lame
-    			__delay_cycles(100000);
+    			delayms(1); // let temp sensor cool down a bit between each reading, this is lame
 				// tell temp sensor to make a measurement
 				I2CMTXBytes(TEMPSENSOR_I2C, &EUSCI_B1_TXDATA, OSCS_HIGH_CMD, 2);
 				// read temperature result (ignore checksum)
